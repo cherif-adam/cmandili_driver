@@ -147,21 +147,6 @@ void _onStart(ServiceInstance service) async {
     return;
   }
 
-  // Cache the latest position so the 10-second heartbeat has something to
-  // push even when the driver is stationary (distanceFilter=0 also works but
-  // bursts updates faster than we want).
-  Position? lastPos;
-
-  StreamSubscription<Position>? posStream;
-  posStream = Geolocator.getPositionStream(
-    locationSettings: const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 0,
-    ),
-  ).listen((pos) {
-    lastPos = pos;
-  });
-
   Future<void> pushLocation(Position pos) async {
     if (service is AndroidServiceInstance) {
       service.setForegroundNotificationInfo(
@@ -192,30 +177,26 @@ void _onStart(ServiceInstance service) async {
     }
   }
 
-  // Heartbeat every 10s — pushes the cached position even when stationary,
-  // so the dispatcher RPC always sees a fresh `current_lat/lng`. Without this
-  // an idle driver would stop updating after `distanceFilter` and slowly
-  // become invisible to the "nearest driver" lookup.
-  final heartbeat = Timer.periodic(const Duration(seconds: 10), (_) async {
-    final pos = lastPos;
-    if (pos != null) {
-      await pushLocation(pos);
-      return;
-    }
-    // No GPS reading yet — try a one-shot fix so the very first beat isn't a
-    // no-op when the driver just opened the app.
-    try {
-      final p = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      lastPos = p;
-      await pushLocation(p);
-    } catch (_) {}
+  StreamSubscription<Position>? posStream;
+  posStream = Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 30, // Mise à jour de la position uniquement après 30 mètres de déplacement
+    ),
+  ).listen((pos) async {
+    await pushLocation(pos);
   });
+
+  // Fetch initial location immediately so we have at least one record
+  try {
+    final initialPos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    await pushLocation(initialPos);
+  } catch (_) {}
 
   // Clean up when service stops
   service.on('stop').listen((_) {
     posStream?.cancel();
-    heartbeat.cancel();
   });
 }
