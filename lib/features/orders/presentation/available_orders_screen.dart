@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/services/background_location_service.dart';
+import '../../../core/push/push_service.dart';
 import '../data/models/order.dart';
 import '../providers/driver_orders_provider.dart';
 import 'order_tracking_screen.dart';
@@ -71,6 +72,11 @@ class _OrderCard extends ConsumerWidget {
 
   Future<void> _acceptOrder(BuildContext context, WidgetRef ref) async {
     final supabase = Supabase.instance.client;
+
+    // Stop the alarm immediately so the driver isn't still hearing it while
+    // the accept flow runs. cancelDeliveryAlarm() is a no-op if no alarm is
+    // playing (e.g. the driver opened via a tapped notification).
+    await PushService.instance.cancelDeliveryAlarm();
 
     try {
       // Get or create driver record

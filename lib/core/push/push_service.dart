@@ -1,24 +1,114 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Channel id must match com.google.firebase.messaging.default_notification_channel_id
-// in AndroidManifest.xml so background `notification` payloads land here too.
-const String _kAndroidChannelId   = 'cmandili_orders';
-const String _kAndroidChannelName = 'Order updates';
-const String _kAndroidChannelDesc = 'New deliveries and order updates';
+// ── Channel IDs ──────────────────────────────────────────────────────────────
+const String _kChannelId   = 'cmandili_orders';
+const String _kChannelName = 'Order updates';
+const String _kChannelDesc = 'New deliveries and order updates';
 
+// Alarm channel — alarm AudioAttributes + max importance so the offer rings
+// even when the phone is in silent/vibrate mode.
+const String _kAlarmChannelId   = 'cmandili_driver_alarm';
+const String _kAlarmChannelName = 'Delivery Offer';
+const String _kAlarmChannelDesc =
+    'Incoming delivery requests that require immediate attention';
+
+// Stable notification ID so the alarm can be programmatically cancelled
+// once the driver accepts or rejects the offer.
+const int kDriverAlarmNotifId = 101;
+
+// ── Background handler ───────────────────────────────────────────────────────
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Android renders `notification`-payload pushes automatically using the
-  // default channel from the manifest, so nothing to do here.
+  final event = message.data['event'] as String?;
+  if (event != 'offer_to_driver') return; // Only handle delivery offers here.
+
+  // Re-init flutter_local_notifications inside the background isolate.
+  final local = FlutterLocalNotificationsPlugin();
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosInit = DarwinInitializationSettings();
+  await local.initialize(
+    const InitializationSettings(android: androidInit, iOS: iosInit),
+  );
+
+  // Create the alarm channel (idempotent — safe to call every time).
+  await local
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(AndroidNotificationChannel(
+        _kAlarmChannelId,
+        _kAlarmChannelName,
+        description: _kAlarmChannelDesc,
+        importance: Importance.max,
+        playSound: true,
+        // File: android/app/src/main/res/raw/driver_alarm.mp3
+        sound: const RawResourceAndroidNotificationSound('driver_alarm'),
+        // AudioAttributesUsage.alarm ensures the sound plays even in
+        // silent/DND mode — the same attribute used by Android Clock alarms.
+        audioAttributes: const AudioAttributes(
+          contentType: AudioAttributesContentType.sonification,
+          usage: AudioAttributesUsage.alarm,
+        ),
+        enableVibration: true,
+        vibrationPattern:
+            Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
+      ));
+
+  final title = message.data['title'] as String? ?? '🔔 Nouvelle livraison !';
+  final body  = message.data['body']  as String?
+      ?? 'Vous avez 15 secondes pour accepter.';
+
+  await local.show(
+    kDriverAlarmNotifId,
+    title,
+    body,
+    NotificationDetails(
+      android: AndroidNotificationDetails(
+        _kAlarmChannelId,
+        _kAlarmChannelName,
+        channelDescription: _kAlarmChannelDesc,
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        sound: const RawResourceAndroidNotificationSound('driver_alarm'),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        enableVibration: true,
+        vibrationPattern:
+            Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
+        // FLAG_INSISTENT (0x04) — repeats the sound continuously until the
+        // notification is dismissed. This is the same flag used by ringtones.
+        additionalFlags: Int32List.fromList([4]),
+        // fullScreenIntent: turns on the screen and shows the notification
+        // as a heads-up card even on the lock screen — call-style behaviour.
+        fullScreenIntent: true,
+        visibility: NotificationVisibility.public,
+        // AndroidNotificationCategory.call gives it call-like priority.
+        category: AndroidNotificationCategory.call,
+        // ongoing: true — notification cannot be swiped away, forcing the
+        // driver to open the app and explicitly respond.
+        ongoing: true,
+        autoCancel: false,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentSound: true,
+        // File: Runner/Resources/driver_alarm.wav (max 30 s on iOS).
+        sound: 'driver_alarm.wav',
+        // critical alert: overrides silent/DND on iOS (requires entitlement).
+        interruptionLevel: InterruptionLevel.critical,
+      ),
+    ),
+  );
 }
 
-/// Single 10-second offer pushed by the backend to one driver at a time.
-/// The home screen watches [PushService.instance.offerStream] and shows a
-/// modal countdown when one fires.
+// ── PushService ──────────────────────────────────────────────────────────────
+
+/// Single 15-second offer pushed by the backend when a new delivery is ready.
+/// The home screen watches [PushService.instance.offerStream] to show a
+/// full-screen accept/reject modal.
 class OrderOffer {
   final String orderId;
   final DateTime receivedAt;
@@ -29,16 +119,18 @@ class PushService {
   PushService._();
   static final PushService instance = PushService._();
 
-  final _fcm = FirebaseMessaging.instance;
+  final _fcm   = FirebaseMessaging.instance;
   final _local = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
   final _offerController = StreamController<OrderOffer>.broadcast();
 
-  /// Emits when an FCM with `event=offer_to_driver` lands while the app is
-  /// in the foreground. Background/terminated pushes still wake the app via
-  /// the system notification; the home screen re-checks the orders table on
-  /// resume and shows the modal if an offer is still active.
+  /// Emits when an FCM `offer_to_driver` message arrives while the app is in
+  /// the FOREGROUND. The home screen shows an accept/reject modal.
+  ///
+  /// Background/terminated-state offers wake the device via the alarm
+  /// notification; when the driver taps it the app opens, and the
+  /// orders-stream provider surfaces the pending offer automatically.
   Stream<OrderOffer> get offerStream => _offerController.stream;
 
   Future<void> initialize() async {
@@ -52,23 +144,39 @@ class PushService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      requestCriticalPermission: true, // for critical alerts on iOS
     );
     await _local.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
     );
 
-    // Pre-create the Android channel so the OS has it ready when background
-    // pushes arrive. Without this the first push after install is silently
-    // dropped on Android 8+.
-    await _local
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(const AndroidNotificationChannel(
-          _kAndroidChannelId,
-          _kAndroidChannelName,
-          description: _kAndroidChannelDesc,
-          importance: Importance.high,
-        ));
+    final androidPlugin = _local.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    // Standard channel for non-urgent status updates.
+    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+      _kChannelId,
+      _kChannelName,
+      description: _kChannelDesc,
+      importance: Importance.high,
+    ));
+
+    // Alarm channel for delivery offers.
+    await androidPlugin?.createNotificationChannel(AndroidNotificationChannel(
+      _kAlarmChannelId,
+      _kAlarmChannelName,
+      description: _kAlarmChannelDesc,
+      importance: Importance.max,
+      playSound: true,
+      sound: const RawResourceAndroidNotificationSound('driver_alarm'),
+      audioAttributes: const AudioAttributes(
+        contentType: AudioAttributesContentType.sonification,
+        usage: AudioAttributesUsage.alarm,
+      ),
+      enableVibration: true,
+      vibrationPattern:
+          Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
+    ));
 
     await _fcm.setForegroundNotificationPresentationOptions(
       alert: true,
@@ -83,11 +191,11 @@ class PushService {
     _fcm.onTokenRefresh.listen((_) => _registerToken());
 
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.signedIn) {
-        _registerToken();
-      }
+      if (data.event == AuthChangeEvent.signedIn) _registerToken();
     });
   }
+
+  // ── Token registration ──────────────────────────────────────────────────
 
   Future<void> _registerToken() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -103,22 +211,59 @@ class PushService {
     } catch (_) {}
   }
 
+  // ── Foreground message handler ──────────────────────────────────────────
+
   void _onForegroundMessage(RemoteMessage message) {
-    // Route 10s offers into the offerStream so the home screen can show a
-    // modal countdown. Skip the local-notification banner for offers — the
-    // modal is the user-facing surface and a duplicate banner is noisy.
     final event = message.data['event'] as String?;
+
+    // ── Delivery offer → emit on offerStream + show alarm notification ────
     if (event == 'offer_to_driver') {
       final orderId = message.data['order_id'] as String?;
       if (orderId != null && orderId.isNotEmpty) {
-        _offerController.add(OrderOffer(
-          orderId: orderId,
-          receivedAt: DateTime.now(),
-        ));
-        return;
+        _offerController.add(
+          OrderOffer(orderId: orderId, receivedAt: DateTime.now()),
+        );
       }
+      // Show the alarm notification even in foreground so the driver can't
+      // miss it if their phone is lying face-down.
+      final title = message.data['title'] as String? ?? '🔔 Nouvelle livraison !';
+      final body  = message.data['body']  as String?
+          ?? 'Vous avez 15 secondes pour accepter.';
+      _local.show(
+        kDriverAlarmNotifId,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _kAlarmChannelId,
+            _kAlarmChannelName,
+            channelDescription: _kAlarmChannelDesc,
+            importance: Importance.max,
+            priority: Priority.max,
+            playSound: true,
+            sound: const RawResourceAndroidNotificationSound('driver_alarm'),
+            audioAttributesUsage: AudioAttributesUsage.alarm,
+            enableVibration: true,
+            vibrationPattern:
+                Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
+            additionalFlags: Int32List.fromList([4]),
+            fullScreenIntent: true,
+            visibility: NotificationVisibility.public,
+            category: AndroidNotificationCategory.call,
+            ongoing: true,
+            autoCancel: false,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentSound: true,
+            sound: 'driver_alarm.wav',
+            interruptionLevel: InterruptionLevel.critical,
+          ),
+        ),
+      );
+      return;
     }
 
+    // ── All other status updates → standard banner ────────────────────────
     final title = message.notification?.title ?? message.data['title'] as String?;
     final body  = message.notification?.body  ?? message.data['body']  as String?;
     if (title == null && body == null) return;
@@ -128,9 +273,9 @@ class PushService {
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          _kAndroidChannelId,
-          _kAndroidChannelName,
-          channelDescription: _kAndroidChannelDesc,
+          _kChannelId,
+          _kChannelName,
+          channelDescription: _kChannelDesc,
           importance: Importance.high,
           priority: Priority.high,
         ),
@@ -138,4 +283,9 @@ class PushService {
       ),
     );
   }
+
+  // ── Cancel alarm notification ───────────────────────────────────────────
+  // MUST be called after the driver accepts or rejects the offer to stop the
+  // continuous ringing. If this is not called the notification rings forever.
+  Future<void> cancelDeliveryAlarm() => _local.cancel(kDriverAlarmNotifId);
 }
