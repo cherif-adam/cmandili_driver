@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
@@ -45,14 +46,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         description: _kAlarmChannelDesc,
         importance: Importance.max,
         playSound: true,
-        // File: android/app/src/main/res/raw/driver_alarm.mp3
-        sound: const RawResourceAndroidNotificationSound('driver_alarm'),
-        // AudioAttributesUsage.alarm ensures the sound plays even in
-        // silent/DND mode — the same attribute used by Android Clock alarms.
-        audioAttributes: const AudioAttributes(
-          contentType: AudioAttributesContentType.sonification,
-          usage: AudioAttributesUsage.alarm,
-        ),
+        // File: android/app/src/main/res/raw/new_order.mp3
+        sound: const RawResourceAndroidNotificationSound('new_order'),
         enableVibration: true,
         vibrationPattern:
             Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
@@ -74,7 +69,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         importance: Importance.max,
         priority: Priority.max,
         playSound: true,
-        sound: const RawResourceAndroidNotificationSound('driver_alarm'),
+        sound: const RawResourceAndroidNotificationSound('new_order'),
         audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
         vibrationPattern:
@@ -96,7 +91,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       iOS: const DarwinNotificationDetails(
         presentSound: true,
         // File: Runner/Resources/driver_alarm.wav (max 30 s on iOS).
-        sound: 'driver_alarm.wav',
+        sound: 'new_order.wav',
         // critical alert: overrides silent/DND on iOS (requires entitlement).
         interruptionLevel: InterruptionLevel.critical,
       ),
@@ -139,6 +134,15 @@ class PushService {
 
     await _fcm.requestPermission(alert: true, badge: true, sound: true);
 
+    // On OEM Android (Xiaomi, Samsung, Huawei) battery optimization kills the
+    // background Dart isolate, preventing delivery-offer alarms when terminated.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final status = await Permission.ignoreBatteryOptimizations.status;
+      if (!status.isGranted) {
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    }
+
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -168,11 +172,7 @@ class PushService {
       description: _kAlarmChannelDesc,
       importance: Importance.max,
       playSound: true,
-      sound: const RawResourceAndroidNotificationSound('driver_alarm'),
-      audioAttributes: const AudioAttributes(
-        contentType: AudioAttributesContentType.sonification,
-        usage: AudioAttributesUsage.alarm,
-      ),
+      sound: const RawResourceAndroidNotificationSound('new_order'),
       enableVibration: true,
       vibrationPattern:
           Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
@@ -241,7 +241,7 @@ class PushService {
             importance: Importance.max,
             priority: Priority.max,
             playSound: true,
-            sound: const RawResourceAndroidNotificationSound('driver_alarm'),
+            sound: const RawResourceAndroidNotificationSound('new_order'),
             audioAttributesUsage: AudioAttributesUsage.alarm,
             enableVibration: true,
             vibrationPattern:
@@ -255,7 +255,7 @@ class PushService {
           ),
           iOS: const DarwinNotificationDetails(
             presentSound: true,
-            sound: 'driver_alarm.wav',
+            sound: 'new_order.wav',
             interruptionLevel: InterruptionLevel.critical,
           ),
         ),
