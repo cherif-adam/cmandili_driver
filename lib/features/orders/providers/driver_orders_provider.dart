@@ -47,10 +47,12 @@ final availableOrdersProvider = StreamProvider<List<Order>>((ref) async* {
       .from('orders')
       .stream(primaryKey: ['id'])
       .order('created_at', ascending: false)) {
+    // Only offer orders the restaurant has marked 'ready' (food cooked) and
+    // that no driver has claimed yet. 'pending' was previously included, which
+    // let a driver grab an order before the restaurant even accepted it.
     final available = rows
         .where((row) =>
-            (row['status'] == 'pending' || row['status'] == 'ready') &&
-            row['driver_id'] == null)
+            row['status'] == 'ready' && row['driver_id'] == null)
         .toList();
     if (available.isEmpty) {
       yield <Order>[];

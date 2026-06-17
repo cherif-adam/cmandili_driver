@@ -83,7 +83,22 @@ class _OrderCard extends ConsumerWidget {
       final driverId = await ref.read(currentDriverIdProvider.future);
       if (driverId == null) throw 'Driver profile not found';
 
-      // Create delivery row
+      // Atomically claim the order: only succeeds if driver_id is still null,
+      // so two drivers tapping Accept at the same time can't both win. The
+      // second one gets an empty result and we abort before creating a
+      // deliveries row or starting GPS tracking.
+      final claimed = await supabase
+          .from('orders')
+          .update({'driver_id': driverId})
+          .eq('id', order.id)
+          .isFilter('driver_id', null)
+          .select('id');
+
+      if ((claimed as List).isEmpty) {
+        throw 'This order was just taken by another driver.';
+      }
+
+      // Create delivery row now that we own the order.
       final deliveryRow = await supabase.from('deliveries').insert({
         'order_id': order.id,
         'driver_id': driverId,
@@ -91,11 +106,6 @@ class _OrderCard extends ConsumerWidget {
         'current_lat': 0,
         'current_lng': 0,
       }).select('id').single();
-
-      // Assign driver to order without overriding the restaurant-side status
-      await supabase.from('orders').update({
-        'driver_id': driverId,
-      }).eq('id', order.id);
 
       // Start background GPS tracking so location updates persist even when
       // the driver navigates away from the tracking screen.
