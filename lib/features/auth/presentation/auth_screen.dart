@@ -159,6 +159,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     final screenWidth = size.width;
 
     return Scaffold(
+      // Required (and already Flutter's default) so the body actually shrinks
+      // when the keyboard opens — the fix below reacts to that shrink.
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Animated Background with Gradient
@@ -297,7 +300,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 top: screenHeight * 0.06, // Extra padding to avoid status bar
                 bottom: screenHeight * 0.02,
               ),
-              child: Column(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // minHeight reproduces today's spaceBetween look whenever the
+                  // full viewport is available. When the keyboard opens, Scaffold
+                  // shrinks constraints.maxHeight; IntrinsicHeight then lets the
+                  // Column grow past that height instead of overflowing, and
+                  // SingleChildScrollView scrolls the rest instead of clipping it.
+                  // Driven by the actual measured constraints rather than a
+                  // hardcoded keyboard height, so it holds across screen sizes
+                  // and both portrait/landscape.
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: IntrinsicHeight(
+                        child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Logo and Title
@@ -616,6 +633,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                   
                   SizedBox(height: screenHeight * 0.01),
                 ],
+              ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
