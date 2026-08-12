@@ -293,15 +293,6 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
-  String _billTypeLabel(String? type) {
-    return switch (type?.toLowerCase()) {
-      'topnet' => '🌐 Topnet',
-      'steg'   => '⚡ STEG',
-      'sonede' => '💧 SONEDE',
-      _        => '🧾 Autre',
-    };
-  }
-
   bool _isFacture(Order order) =>
       order.type == OrderType.facture || order.type == OrderType.billPayment;
 
