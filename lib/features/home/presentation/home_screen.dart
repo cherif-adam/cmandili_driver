@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_map.dart';
@@ -22,7 +23,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   StreamSubscription<OrderOffer>? _offerSub;
   bool _offerOpen = false; // guards against stacking dialogs on rapid pushes
@@ -35,12 +36,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // and the home screen lives for the duration of the authenticated
     // session, matching the lifetime we want for the listener.
     _offerSub = PushService.instance.offerStream.listen(_onOffer);
+
+    // offerStream only fires for a TRUE-foreground FCM message (onMessage)
+    // or an explicit notification tap — the background isolate that handles
+    // a backgrounded/terminated app can only show a system notification, it
+    // has no way to reach this isolate's stream. A driver who opens the app
+    // normally (home-screen icon) instead of tapping the notification would
+    // otherwise never see the offer at all. Cover that gap by checking for
+    // a still-valid pending offer on cold start and on every resume.
+    WidgetsBinding.instance.addObserver(this);
+    _checkForPendingOffer();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _offerSub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkForPendingOffer();
+  }
+
+  Future<void> _checkForPendingOffer() async {
+    try {
+      final driverId = await ref.read(currentDriverIdProvider.future);
+      if (driverId == null) return;
+      final rows = await Supabase.instance.client
+          .from('orders')
+          .select('id, driver_id, assignment_expires_at')
+          .eq('assigned_driver_id', driverId)
+          .order('created_at', ascending: false)
+          .limit(5);
+      final nowUtc = DateTime.now().toUtc();
+      for (final row in (rows as List).cast<Map<String, dynamic>>()) {
+        if (row['driver_id'] != null) continue; // already accepted, not an offer
+        final expiresAt = row['assignment_expires_at'] as String?;
+        if (expiresAt == null) continue;
+        if (DateTime.parse(expiresAt).isAfter(nowUtc)) {
+          _onOffer(OrderOffer(orderId: row['id'] as String, receivedAt: DateTime.now()));
+          return;
+        }
+      }
+    } catch (_) {
+      // Best-effort recovery check — the push itself is the primary path.
+    }
   }
 
   Future<void> _onOffer(OrderOffer offer) async {
@@ -52,14 +94,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         barrierDismissible: false,
         builder: (_) => OrderOfferDialog(orderId: offer.orderId),
       );
-      // On accept, jump to the orders tab so the driver sees the offer card
-      // in context and can tap "Accept Order" — the existing accept flow
-      // (delivery row + driver_id) is unchanged.
+      // OrderOfferDialog now performs the real accept itself (driver_id
+      // claim + deliveries row + GPS tracking start) before popping true,
+      // so by this point the order is genuinely this driver's active
+      // delivery — take them straight to it.
       if (accepted == true && mounted) {
-        setState(() => _selectedIndex = 1);
-        // Force the available-orders list to refresh in case streaming hasn't
-        // surfaced the assigned order yet.
-        ref.invalidate(availableOrdersProvider);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OrderTrackingScreen(orderId: offer.orderId),
+          ),
+        );
       }
     } finally {
       _offerOpen = false;
