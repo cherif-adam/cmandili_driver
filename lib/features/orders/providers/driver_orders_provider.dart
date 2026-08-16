@@ -72,11 +72,33 @@ final availableOrdersProvider = StreamProvider<List<Order>>((ref) async* {
     } catch (_) {
       // RLS or migration not yet applied — fall through with empty map.
     }
+    // Item names for food/supermarket orders — .stream() above can't join,
+    // so this is a second query merged in by order_id, same pattern as the
+    // customer-name enrichment right above.
+    Map<String, String?> summaryById = {};
+    try {
+      final itemRows = await _supabase
+          .from('order_items')
+          .select('order_id, quantity, food_items(name), grocery_items(name)')
+          .inFilter('order_id', ids);
+      final byOrder = <String, List<Map<String, dynamic>>>{};
+      for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {
+        byOrder.putIfAbsent(row['order_id'] as String, () => []).add(row);
+      }
+      summaryById = {
+        for (final entry in byOrder.entries)
+          entry.key: _buildContentSummary(entry.value),
+      };
+    } catch (_) {
+      // No items (courier/facture orders) or a transient error — the widget
+      // falls back to packageDescription/billType for those types anyway.
+    }
     yield available.map((row) {
       final extra = byId[row['id']];
       final mapped = _mapOrderRow(row);
       mapped['customerName'] = extra?['customer_name'];
       mapped['customerPhone'] = extra?['customer_phone'];
+      mapped['contentSummary'] = summaryById[row['id']];
       return Order.fromJson(mapped);
     }).toList();
   }
@@ -170,5 +192,29 @@ Map<String, dynamic> _mapOrderRow(Map<String, dynamic> row) {
     'receiptPhotoUrl': row['bill_receipt_url'],
     'customerName': row['customer_name'],
     'customerPhone': row['customer_phone'],
+    'loyaltyMilestoneType': row['loyalty_milestone_type'],
+    'loyaltyDiscountAmount': row['loyalty_discount_amount'],
+    'contentSummary': row['content_summary'],
   };
+}
+
+/// "Pizza Margherita x2, Coca Cola, et 3 autres" — built from a food/
+/// supermarket order's line items. Null for order types with no items
+/// table (courier/facture use packageDescription/billType instead).
+String? _buildContentSummary(List<Map<String, dynamic>> items) {
+  if (items.isEmpty) return null;
+  final names = items
+      .map((it) {
+        final foodItem = it['food_items'] as Map<String, dynamic>?;
+        final groceryItem = it['grocery_items'] as Map<String, dynamic>?;
+        final name = (foodItem?['name'] ?? groceryItem?['name'] ?? '') as String;
+        final qty = (it['quantity'] as num?)?.toInt() ?? 1;
+        return qty > 1 ? '$name x$qty' : name;
+      })
+      .where((s) => s.isNotEmpty)
+      .toList();
+  if (names.isEmpty) return null;
+  if (names.length <= 2) return names.join(', ');
+  final remaining = names.length - 2;
+  return '${names.take(2).join(', ')}, et $remaining autre${remaining > 1 ? 's' : ''}';
 }

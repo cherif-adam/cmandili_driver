@@ -66,6 +66,24 @@ class AvailableOrdersScreen extends ConsumerWidget {
   }
 }
 
+/// Order-card title — type-aware so a driver can't mistake a courier
+/// package for a food order (or vice versa) at a glance. A named
+/// restaurant/supermarket always wins; otherwise falls back to whatever
+/// distinguishes the order type.
+String _orderTitle(Order order) {
+  if (order.restaurantName.isNotEmpty) return order.restaurantName;
+  switch (order.type) {
+    case OrderType.courier:
+      final desc = order.packageDescription?.trim();
+      return (desc != null && desc.isNotEmpty) ? desc : 'Colis';
+    case OrderType.facture:
+    case OrderType.billPayment:
+      return 'Facture';
+    default:
+      return 'Order #${order.id.substring(0, 8).toUpperCase()}';
+  }
+}
+
 class _OrderCard extends ConsumerWidget {
   final Order order;
   const _OrderCard({required this.order});
@@ -173,15 +191,14 @@ class _OrderCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row
+            // Header row — title is type-aware so a driver can't mistake a
+            // courier/facture order for food (or vice versa) at a glance.
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
-                    order.restaurantName.isNotEmpty
-                        ? order.restaurantName
-                        : 'Order #${order.id.substring(0, 8).toUpperCase()}',
+                    _orderTitle(order),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
@@ -206,7 +223,62 @@ class _OrderCard extends ConsumerWidget {
                 ),
               ],
             ),
+
+            // Food/supermarket: what's actually in the order, distinct from
+            // which restaurant it's from (the title above).
+            if ((order.type == OrderType.food || order.type == OrderType.supermarket) &&
+                (order.contentSummary ?? '').isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                order.contentSummary!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
             const SizedBox(height: 12),
+
+            // Loyalty milestone banner — shown before Accept so the driver
+            // is never surprised at pickup/drop-off by reduced cash.
+            // order.total above already reflects the discount; this just
+            // explains why and reassures the driver their earning is
+            // unaffected. Same wording as the countdown-offer dialog.
+            if (order.loyaltyMilestoneType != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.loyalty_rounded, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        order.loyaltyMilestoneType == 'free'
+                            ? 'Commande fidélité — le client ne paiera aucun frais de livraison en espèces. Votre gain reste inchangé, la différence est prise en charge par la plateforme.'
+                            : 'Commande fidélité — le client paiera 50% du tarif de livraison en espèces. Votre gain reste inchangé, la différence est prise en charge par la plateforme.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Bill payment (facture) orders
             if (order.type == OrderType.billPayment || order.type == OrderType.facture) ...[

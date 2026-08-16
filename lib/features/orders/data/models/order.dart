@@ -62,6 +62,17 @@ class Order {
   final String? customerName;
   final String? customerPhone;
 
+  // Loyalty milestone (5th order = half price, 10th = free), stamped by
+  // apply_loyalty_at_checkout() at order creation — already set by the time
+  // any driver sees this order, so it's safe to show before accepting.
+  final String? loyaltyMilestoneType; // 'half' | 'free' | null
+  final double loyaltyDiscountAmount;
+
+  // "Pizza Margherita x2, et 3 autres" — food/supermarket orders only.
+  // Null for courier/facture (use packageDescription/billType instead) or
+  // when not yet loaded.
+  final String? contentSummary;
+
   Order({
     required this.id,
     required this.userId,
@@ -97,6 +108,9 @@ class Order {
     this.receiptPhotoUrl,
     this.customerName,
     this.customerPhone,
+    this.loyaltyMilestoneType,
+    this.loyaltyDiscountAmount = 0,
+    this.contentSummary,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -148,6 +162,10 @@ class Order {
       receiptPhotoUrl: json['receiptPhotoUrl'] as String?,
       customerName: json['customerName'] as String?,
       customerPhone: json['customerPhone'] as String?,
+      loyaltyMilestoneType: json['loyaltyMilestoneType'] as String?,
+      loyaltyDiscountAmount:
+          (json['loyaltyDiscountAmount'] as num?)?.toDouble() ?? 0,
+      contentSummary: json['contentSummary'] as String?,
     );
   }
 
@@ -185,6 +203,9 @@ class Order {
       'billAmount': billAmount,
       'billPhotoUrl': billPhotoUrl,
       'receiptPhotoUrl': receiptPhotoUrl,
+      'loyaltyMilestoneType': loyaltyMilestoneType,
+      'loyaltyDiscountAmount': loyaltyDiscountAmount,
+      'contentSummary': contentSummary,
     };
   }
 

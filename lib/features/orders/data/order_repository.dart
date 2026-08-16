@@ -109,6 +109,8 @@ class OrderRepository {
       'billAmount': dbJson['bill_amount'] != null ? (dbJson['bill_amount'] as num).toDouble() : null,
       'billPhotoUrl': dbJson['bill_photo_url'],
       'receiptPhotoUrl': dbJson['bill_receipt_url'],
+      'loyaltyMilestoneType': dbJson['loyalty_milestone_type'],
+      'loyaltyDiscountAmount': dbJson['loyalty_discount_amount'],
     };
   }
 }
