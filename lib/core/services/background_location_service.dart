@@ -63,11 +63,28 @@ class BackgroundLocationService {
     );
   }
 
+  /// Android only grants "Allow all the time" via a second prompt, and only
+  /// after "While using the app" is already granted — requesting it too
+  /// early (e.g. at cold start) silently fails on Android 11+. Call this
+  /// right before starting the service, once foreground permission is known
+  /// to be granted, so the GPS stream keeps delivering once the app is
+  /// actually backgrounded instead of pausing after a few minutes.
+  /// iOS relies on UIBackgroundModes=location (see Info.plist) once
+  /// when-in-use is granted, so no extra request is needed there.
+  static Future<void> _ensureBackgroundPermission() async {
+    if (!Platform.isAndroid) return;
+    final status = await Permission.locationAlways.status;
+    if (!status.isGranted) {
+      await Permission.locationAlways.request();
+    }
+  }
+
   /// Call when driver accepts an order. Persists IDs so the isolate can read them.
   static Future<void> startTracking({
     required String driverId,
     required String deliveryId,
   }) async {
+    await _ensureBackgroundPermission();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kDriverIdKey, driverId);
     await prefs.setString(_kDeliveryIdKey, deliveryId);
@@ -78,6 +95,7 @@ class BackgroundLocationService {
   /// Starts the foreground service (persistent "online" notification) so
   /// Android OEMs keep FCM push alive even when the app is backgrounded.
   static Future<void> startOnlinePresence({required String driverId}) async {
+    await _ensureBackgroundPermission();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kDriverIdKey, driverId);
     await prefs.remove(_kDeliveryIdKey);
@@ -139,7 +157,7 @@ void _onStart(ServiceInstance service) async {
     service.stopSelf();
   });
 
-  // Stream GPS with high accuracy, 10m filter
+  // Stream GPS with high accuracy, 30m filter
   LocationPermission permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied ||
       permission == LocationPermission.deniedForever) {
