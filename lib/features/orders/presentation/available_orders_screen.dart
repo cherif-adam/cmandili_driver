@@ -57,7 +57,7 @@ class AvailableOrdersScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: orders.length,
               itemBuilder: (context, index) =>
-                  _OrderCard(order: orders[index]),
+                  _OrderCard(key: ValueKey(orders[index].id), order: orders[index]),
             ),
           );
         },
@@ -84,11 +84,23 @@ String _orderTitle(Order order) {
   }
 }
 
-class _OrderCard extends ConsumerWidget {
+class _OrderCard extends ConsumerStatefulWidget {
   final Order order;
-  const _OrderCard({required this.order});
+  const _OrderCard({super.key, required this.order});
+
+  @override
+  ConsumerState<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends ConsumerState<_OrderCard> {
+  bool _accepting = false;
+
+  Order get order => widget.order;
 
   Future<void> _acceptOrder(BuildContext context, WidgetRef ref) async {
+    if (_accepting) return;
+    setState(() => _accepting = true);
+
     final supabase = Supabase.instance.client;
 
     // Stop the alarm immediately so the driver isn't still hearing it while
@@ -141,7 +153,8 @@ class _OrderCard extends ConsumerWidget {
         ),
       );
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
+      setState(() => _accepting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to accept order: $e'),
@@ -168,7 +181,7 @@ class _OrderCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final address = order.deliveryAddress;
     final cname = _customerName;
     final cphone = _customerPhone;
@@ -448,7 +461,7 @@ class _OrderCard extends ConsumerWidget {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () => _acceptOrder(context, ref),
+                onPressed: _accepting ? null : () => _acceptOrder(context, ref),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -457,10 +470,19 @@ class _OrderCard extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  AppLocalizations.of(context)!.acceptOrder,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: _accepting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        AppLocalizations.of(context)!.acceptOrder,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
             ),
           ],
