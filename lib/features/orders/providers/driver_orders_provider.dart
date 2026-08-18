@@ -168,9 +168,41 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
     }
   }
 
+  // Commission/loyalty-subsidy settlements — generate_settlements_on_delivery()
+  // only inserts these for cash orders, so an order with no matching row here
+  // just gets no breakdown shown (same graceful-fallback shape as the item
+  // summary above).
+  Map<String, double> commissionByOrder = {};
+  Map<String, double> subsidyByOrder = {};
+  if (ids.isNotEmpty) {
+    try {
+      final settlementRows = await _supabase
+          .from('settlements')
+          .select('related_order_id, type, amount')
+          .eq('user_id', userId)
+          .eq('entity_type', 'driver')
+          .inFilter('related_order_id', ids)
+          .inFilter('type', ['commission_deduction', 'loyalty_subsidy']);
+      for (final row in (settlementRows as List).cast<Map<String, dynamic>>()) {
+        final orderId = row['related_order_id'] as String?;
+        if (orderId == null) continue;
+        final amount = (row['amount'] as num?)?.toDouble() ?? 0;
+        if (row['type'] == 'commission_deduction') {
+          commissionByOrder[orderId] = amount;
+        } else if (row['type'] == 'loyalty_subsidy') {
+          subsidyByOrder[orderId] = amount;
+        }
+      }
+    } catch (_) {
+      // Transient error — falls back to no breakdown for this load.
+    }
+  }
+
   return orderRows.map((row) {
     final mapped = _mapOrderRow(row);
     mapped['contentSummary'] = summaryById[row['id']];
+    mapped['commissionAmount'] = commissionByOrder[row['id']];
+    mapped['loyaltySubsidyAmount'] = subsidyByOrder[row['id']];
     return Order.fromJson(mapped);
   }).toList();
 });

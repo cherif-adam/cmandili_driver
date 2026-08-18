@@ -28,6 +28,28 @@ String _deliveryPrimaryLabel(Order order) {
   }
 }
 
+/// "Collecté: 3.500 DT — Commission: -0.805 DT — Net: 2.695 DT", with a
+/// "Subvention" field inserted when a loyalty subsidy applies. Net always
+/// equals what a normal full-price delivery would have netted, since the
+/// subsidy exists specifically to make loyalty-discounted deliveries earn
+/// the same as full-price ones. Null when there's no commission_deduction
+/// settlement for this order yet (generate_settlements_on_delivery() is
+/// cash-only, so non-cash orders never get one).
+String? _commissionBreakdownText(Order order) {
+  final commission = order.commissionAmount;
+  if (commission == null) return null;
+  final collected = order.deliveryFee;
+  final subsidy = order.loyaltySubsidyAmount;
+  final net = collected + commission + (subsidy ?? 0);
+  final parts = [
+    'Collecté: ${collected.toStringAsFixed(3)} DT',
+    'Commission: ${commission.toStringAsFixed(3)} DT',
+    if (subsidy != null) 'Subvention: +${subsidy.toStringAsFixed(3)} DT',
+    'Net: ${net.toStringAsFixed(3)} DT',
+  ];
+  return parts.join(' — ');
+}
+
 final _earningsProvider =
     FutureProvider.family<Map<String, dynamic>, String>((ref, period) async {
   final supabase = Supabase.instance.client;
@@ -256,69 +278,85 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                   );
                 }
                 return Column(
-                  children: orders
-                      .take(20)
-                      .map((order) => Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3))
-                              ],
+                  children: orders.take(20).map((order) {
+                    final breakdown = _commissionBreakdownText(order);
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3))
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.check_circle,
+                                    color: AppColors.success, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _deliveryPrimaryLabel(order),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '#${order.id.substring(0, 8).toUpperCase()} · ${order.deliveryAddress.fullAddress.isNotEmpty ? order.deliveryAddress.fullAddress : order.deliveryAddress.label}',
+                                      style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '+${order.deliveryFee.toStringAsFixed(2)} DT',
+                                style: const TextStyle(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15),
+                              ),
+                            ],
+                          ),
+                          if (breakdown != null) ...[
+                            const SizedBox(height: 10),
+                            Container(height: 1, color: AppColors.background),
+                            const SizedBox(height: 8),
+                            Text(
+                              breakdown,
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11.5),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.success
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(Icons.check_circle,
-                                      color: AppColors.success, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _deliveryPrimaryLabel(order),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '#${order.id.substring(0, 8).toUpperCase()} · ${order.deliveryAddress.fullAddress.isNotEmpty ? order.deliveryAddress.fullAddress : order.deliveryAddress.label}',
-                                        style: const TextStyle(
-                                            color: AppColors.textSecondary,
-                                            fontSize: 12),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  '+${order.deliveryFee.toStringAsFixed(2)} DT',
-                                  style: const TextStyle(
-                                      color: AppColors.success,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15),
-                                ),
-                              ],
-                            ),
-                          ))
-                      .toList(),
+                          ],
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),

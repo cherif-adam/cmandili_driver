@@ -73,6 +73,14 @@ class Order {
   // when not yet loaded.
   final String? contentSummary;
 
+  // Driver's settlements for this order (generate_settlements_on_delivery).
+  // Null when no commission_deduction row exists yet -- non-cash orders
+  // never get one, since that trigger is cash-only. commissionAmount is
+  // stored/shown as a negative value; loyaltySubsidyAmount (positive) is
+  // only set when this was a loyalty-milestone order.
+  final double? commissionAmount;
+  final double? loyaltySubsidyAmount;
+
   Order({
     required this.id,
     required this.userId,
@@ -111,6 +119,8 @@ class Order {
     this.loyaltyMilestoneType,
     this.loyaltyDiscountAmount = 0,
     this.contentSummary,
+    this.commissionAmount,
+    this.loyaltySubsidyAmount,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -166,6 +176,8 @@ class Order {
       loyaltyDiscountAmount:
           (json['loyaltyDiscountAmount'] as num?)?.toDouble() ?? 0,
       contentSummary: json['contentSummary'] as String?,
+      commissionAmount: (json['commissionAmount'] as num?)?.toDouble(),
+      loyaltySubsidyAmount: (json['loyaltySubsidyAmount'] as num?)?.toDouble(),
     );
   }
 
@@ -206,6 +218,8 @@ class Order {
       'loyaltyMilestoneType': loyaltyMilestoneType,
       'loyaltyDiscountAmount': loyaltyDiscountAmount,
       'contentSummary': contentSummary,
+      'commissionAmount': commissionAmount,
+      'loyaltySubsidyAmount': loyaltySubsidyAmount,
     };
   }
 
