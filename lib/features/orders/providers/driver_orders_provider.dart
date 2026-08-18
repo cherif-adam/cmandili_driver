@@ -141,9 +141,38 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
       .eq('status', 'delivered')
       .order('created_at', ascending: false);
 
-  return (rows as List)
-      .map((row) => Order.fromJson(_mapOrderRow(row)))
-      .toList();
+  final orderRows = (rows as List).cast<Map<String, dynamic>>();
+  final ids = orderRows.map((r) => r['id'] as String).toList();
+
+  // Item names for food/supermarket orders — same enrichment pattern as
+  // availableOrdersProvider: a one-shot query merged in by order_id, since
+  // the initial select above can't join order_items either.
+  Map<String, String?> summaryById = {};
+  if (ids.isNotEmpty) {
+    try {
+      final itemRows = await _supabase
+          .from('order_items')
+          .select('order_id, quantity, food_items(name), grocery_items(name)')
+          .inFilter('order_id', ids);
+      final byOrder = <String, List<Map<String, dynamic>>>{};
+      for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {
+        byOrder.putIfAbsent(row['order_id'] as String, () => []).add(row);
+      }
+      summaryById = {
+        for (final entry in byOrder.entries)
+          entry.key: _buildContentSummary(entry.value),
+      };
+    } catch (_) {
+      // No items (courier/facture orders) or a transient error — the widget
+      // falls back to packageDescription/billType for those types anyway.
+    }
+  }
+
+  return orderRows.map((row) {
+    final mapped = _mapOrderRow(row);
+    mapped['contentSummary'] = summaryById[row['id']];
+    return Order.fromJson(mapped);
+  }).toList();
 });
 
 Map<String, dynamic> _mapOrderRow(Map<String, dynamic> row) {

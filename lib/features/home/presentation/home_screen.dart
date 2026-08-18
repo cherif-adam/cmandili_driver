@@ -23,7 +23,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
   StreamSubscription<OrderOffer>? _offerSub;
   bool _offerOpen = false; // guards against stacking dialogs on rapid pushes
@@ -72,11 +73,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           .limit(5);
       final nowUtc = DateTime.now().toUtc();
       for (final row in (rows as List).cast<Map<String, dynamic>>()) {
-        if (row['driver_id'] != null) continue; // already accepted, not an offer
+        if (row['driver_id'] != null)
+          continue; // already accepted, not an offer
         final expiresAt = row['assignment_expires_at'] as String?;
         if (expiresAt == null) continue;
         if (DateTime.parse(expiresAt).isAfter(nowUtc)) {
-          _onOffer(OrderOffer(orderId: row['id'] as String, receivedAt: DateTime.now()));
+          _onOffer(OrderOffer(
+              orderId: row['id'] as String, receivedAt: DateTime.now()));
           return;
         }
       }
@@ -122,11 +125,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       activeDeliveryAsync.when(
         data: (order) => order != null
             ? OrderTrackingScreen(orderId: order.id)
-            : _NoActiveDelivery(onBrowse: () => setState(() => _selectedIndex = 1)),
-        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (_, __) => _NoActiveDelivery(onBrowse: () => setState(() => _selectedIndex = 1)),
+            : _NoActiveDelivery(
+                onBrowse: () => setState(() => _selectedIndex = 1)),
+        loading: () =>
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (_, __) => _NoActiveDelivery(
+            onBrowse: () => setState(() => _selectedIndex = 1)),
       ),
-      const EarningsScreen(),
+      EarningsScreen(isActive: _selectedIndex == 3),
       const ProfileScreen(),
     ];
 
@@ -150,11 +156,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _NavItem(index: 0, icon: Icons.dashboard_rounded, label: l.home, selected: _selectedIndex == 0, onTap: () => setState(() => _selectedIndex = 0)),
-              _NavItem(index: 1, icon: Icons.delivery_dining_rounded, label: l.orders, selected: _selectedIndex == 1, onTap: () => setState(() => _selectedIndex = 1)),
-              _NavItem(index: 2, icon: Icons.navigation_rounded, label: l.active, selected: _selectedIndex == 2, onTap: () => setState(() => _selectedIndex = 2)),
-              _NavItem(index: 3, icon: Icons.account_balance_wallet_rounded, label: l.earnings, selected: _selectedIndex == 3, onTap: () => setState(() => _selectedIndex = 3)),
-              _NavItem(index: 4, icon: Icons.person_rounded, label: l.profile, selected: _selectedIndex == 4, onTap: () => setState(() => _selectedIndex = 4)),
+              _NavItem(
+                  index: 0,
+                  icon: Icons.dashboard_rounded,
+                  label: l.home,
+                  selected: _selectedIndex == 0,
+                  onTap: () => setState(() => _selectedIndex = 0)),
+              _NavItem(
+                  index: 1,
+                  icon: Icons.delivery_dining_rounded,
+                  label: l.orders,
+                  selected: _selectedIndex == 1,
+                  onTap: () => setState(() => _selectedIndex = 1)),
+              _NavItem(
+                  index: 2,
+                  icon: Icons.navigation_rounded,
+                  label: l.active,
+                  selected: _selectedIndex == 2,
+                  onTap: () => setState(() => _selectedIndex = 2)),
+              _NavItem(
+                  index: 3,
+                  icon: Icons.account_balance_wallet_rounded,
+                  label: l.earnings,
+                  selected: _selectedIndex == 3,
+                  onTap: () => setState(() => _selectedIndex = 3)),
+              _NavItem(
+                  index: 4,
+                  icon: Icons.person_rounded,
+                  label: l.profile,
+                  selected: _selectedIndex == 4,
+                  onTap: () => setState(() => _selectedIndex = 4)),
             ],
           ),
         ),
@@ -170,7 +201,12 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavItem({required this.index, required this.icon, required this.label, required this.selected, required this.onTap});
+  const _NavItem(
+      {required this.index,
+      required this.icon,
+      required this.label,
+      required this.selected,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -181,13 +217,17 @@ class _NavItem extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
+            color: selected
+                ? AppColors.primary.withOpacity(0.12)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: selected ? AppColors.primary : AppColors.textSecondary),
+              Icon(icon,
+                  color:
+                      selected ? AppColors.primary : AppColors.textSecondary),
               const SizedBox(height: 4),
               Text(
                 label,
@@ -244,7 +284,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     // Verify the OS-level location switch is on. If not, GPS will return
     // a useless fallback (or nothing) — surface that to the user.
     if (!await Geolocator.isLocationServiceEnabled()) {
-      if (mounted) setState(() => _locationError = AppLocalizations.of(context)!.locationOff);
+      if (mounted)
+        setState(
+            () => _locationError = AppLocalizations.of(context)!.locationOff);
       return;
     }
 
@@ -254,7 +296,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      if (mounted) setState(() => _locationError = AppLocalizations.of(context)!.locationDeniedSettings);
+      if (mounted)
+        setState(() => _locationError =
+            AppLocalizations.of(context)!.locationDeniedSettings);
       return;
     }
 
@@ -298,7 +342,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
   Future<void> _maybeResolveAddress(double lat, double lng) async {
     if (_lastGeocodedLat != null && _lastGeocodedLng != null) {
       final movedMeters = Geolocator.distanceBetween(
-        _lastGeocodedLat!, _lastGeocodedLng!, lat, lng,
+        _lastGeocodedLat!,
+        _lastGeocodedLng!,
+        lat,
+        lng,
       );
       if (movedMeters < 100) return;
     }
@@ -382,7 +429,10 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                             Expanded(
                               child: Text(
                                 l.driverDashboard,
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -396,8 +446,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                               activeTrackColor: Colors.green.shade400,
                               inactiveThumbColor: Colors.white,
                               inactiveTrackColor: Colors.white24,
-                              onChanged: (next) =>
-                                  ref.read(driverOnlineProvider.notifier).setOnline(next),
+                              onChanged: (next) => ref
+                                  .read(driverOnlineProvider.notifier)
+                                  .setOnline(next),
                             ),
                           ],
                         ),
@@ -405,19 +456,26 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         Text(
                           hasActive
                               ? l.youHaveActiveDelivery
-                              : (isOnline ? l.readyForOrders : l.youreOfflineFlip),
-                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                              : (isOnline
+                                  ? l.readyForOrders
+                                  : l.youreOfflineFlip),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 14),
                         ),
                         if (_cityName != null) ...[
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              const Icon(Icons.place_outlined, size: 14, color: Colors.white70),
+                              const Icon(Icons.place_outlined,
+                                  size: 14, color: Colors.white70),
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
                                   _cityName!,
-                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -427,11 +485,14 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         const Spacer(),
                         Row(
                           children: [
-                            _HeaderStat(label: l.available, value: '$availableCount'),
+                            _HeaderStat(
+                                label: l.available, value: '$availableCount'),
                             const SizedBox(width: 1),
-                            Container(width: 1, height: 32, color: Colors.white24),
+                            Container(
+                                width: 1, height: 32, color: Colors.white24),
                             const SizedBox(width: 1),
-                            _HeaderStat(label: l.active, value: hasActive ? '1' : '0'),
+                            _HeaderStat(
+                                label: l.active, value: hasActive ? '1' : '0'),
                           ],
                         ),
                       ],
@@ -441,7 +502,6 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
               ),
             ),
           ),
-
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -449,16 +509,23 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (hasActive) ...[
-                    Text(l.activeDelivery, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(l.activeDelivery,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     _ActiveDeliveryCard(order: activeAsync.value!),
                     const SizedBox(height: 24),
                   ],
-
                   Row(
                     children: [
                       Expanded(
-                        child: Text(l.yourLocation, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                        child: Text(l.yourLocation,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold)),
                       ),
                       if (hasLocation)
                         TextButton.icon(
@@ -476,12 +543,16 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                        const Icon(Icons.location_on,
+                            size: 14, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            [_placeName, _cityName].where((s) => s != null && s.isNotEmpty).join(' • '),
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                            [_placeName, _cityName]
+                                .where((s) => s != null && s.isNotEmpty)
+                                .join(' • '),
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 13),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -533,14 +604,17 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    _locationError != null ? Icons.location_off : Icons.location_searching,
+                                    _locationError != null
+                                        ? Icons.location_off
+                                        : Icons.location_searching,
                                     color: AppColors.textLight,
                                     size: 32,
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     _locationError ?? 'Locating you…',
-                                    style: const TextStyle(color: AppColors.textSecondary),
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
@@ -549,23 +623,29 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  Text('Available Orders', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  Text('Available Orders',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text('$availableCount order(s) waiting for a driver', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  Text('$availableCount order(s) waiting for a driver',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13)),
                   const SizedBox(height: 12),
-
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton.icon(
                       onPressed: widget.onGoToOrders,
                       icon: const Icon(Icons.delivery_dining_rounded),
-                      label: const Text('View Available Orders', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('View Available Orders',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                   ),
@@ -589,8 +669,13 @@ class _HeaderStat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold)),
+          Text(label,
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ],
       ),
     );
@@ -627,12 +712,16 @@ class _ActiveDeliveryCard extends StatelessWidget {
               children: [
                 Text(
                   '#${order.id.toString().substring(0, 8).toUpperCase()}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  order.deliveryAddress?.fullAddress ?? order.deliveryAddress?.label ?? '',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  order.deliveryAddress?.fullAddress ??
+                      order.deliveryAddress?.label ??
+                      '',
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 13),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -645,7 +734,11 @@ class _ActiveDeliveryCard extends StatelessWidget {
               color: AppColors.success.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(AppLocalizations.of(context)!.onTheWay, style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.onTheWay,
+                style: const TextStyle(
+                    color: AppColors.success,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -665,18 +758,23 @@ class _NoActiveDelivery extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.delivery_dining, size: 80, color: AppColors.textLight),
+            const Icon(Icons.delivery_dining,
+                size: 80, color: AppColors.textLight),
             const SizedBox(height: 16),
-            Text(l.noActiveDelivery, style: const TextStyle(fontSize: 18, color: AppColors.textSecondary)),
+            Text(l.noActiveDelivery,
+                style: const TextStyle(
+                    fontSize: 18, color: AppColors.textSecondary)),
             const SizedBox(height: 8),
-            Text(l.acceptOrderToStart, style: const TextStyle(color: AppColors.textLight)),
+            Text(l.acceptOrderToStart,
+                style: const TextStyle(color: AppColors.textLight)),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: onBrowse,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(l.browseAvailableOrders),
             ),
@@ -717,7 +815,8 @@ class _MapMiniButton extends StatelessWidget {
 class _FullscreenMapScreen extends StatefulWidget {
   final double initialLat;
   final double initialLng;
-  const _FullscreenMapScreen({required this.initialLat, required this.initialLng});
+  const _FullscreenMapScreen(
+      {required this.initialLat, required this.initialLng});
 
   @override
   State<_FullscreenMapScreen> createState() => _FullscreenMapScreenState();
