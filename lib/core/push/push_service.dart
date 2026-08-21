@@ -13,7 +13,7 @@ const String _kChannelDesc = 'New deliveries and order updates';
 
 // Alarm channel — alarm AudioAttributes + max importance so the offer rings
 // even when the phone is in silent/vibrate mode.
-const String _kAlarmChannelId   = 'cmandili_driver_alarm';
+const String _kAlarmChannelId   = 'cmandili_driver_alarm_2';
 const String _kAlarmChannelName = 'Delivery Offer';
 const String _kAlarmChannelDesc =
     'Incoming delivery requests that require immediate attention';

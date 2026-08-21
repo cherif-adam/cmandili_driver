@@ -38,7 +38,7 @@ class Application : FlutterApplication() {
 
             nm.createNotificationChannel(
                 NotificationChannel(
-                    "cmandili_driver_alarm",
+                    "cmandili_driver_alarm_2",
                     "Delivery Offer Alert",
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
