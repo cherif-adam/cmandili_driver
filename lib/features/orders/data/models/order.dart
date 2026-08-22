@@ -25,6 +25,7 @@ class Order {
   final String userId;
   final String restaurantId;
   final String restaurantName;
+  final String supermarketId;
   final List<CartItem> items;
   final DeliveryAddress deliveryAddress;
   final double subtotal;
@@ -86,6 +87,7 @@ class Order {
     required this.userId,
     this.restaurantId = '',
     this.restaurantName = '',
+    this.supermarketId = '',
     this.items = const [],
     required this.deliveryAddress,
     required this.subtotal,
@@ -129,6 +131,7 @@ class Order {
       userId: json['userId'] ?? '',
       restaurantId: json['restaurantId'] ?? '',
       restaurantName: json['restaurantName'] ?? '',
+      supermarketId: json['supermarketId'] ?? '',
       items: (json['items'] as List?)
               ?.map((item) => CartItem.fromJson(item))
               .toList() ??
@@ -187,6 +190,7 @@ class Order {
       'userId': userId,
       'restaurantId': restaurantId,
       'restaurantName': restaurantName,
+      'supermarketId': supermarketId,
       'items': items.map((item) => item.toJson()).toList(),
       'deliveryAddress': deliveryAddress.toJson(),
       'subtotal': subtotal,

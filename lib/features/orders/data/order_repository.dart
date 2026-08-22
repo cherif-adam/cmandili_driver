@@ -79,6 +79,7 @@ class OrderRepository {
       'userId': dbJson['user_id'],
       'restaurantId': dbJson['restaurant_id'] ?? '',
       'restaurantName': '', // Would need to join with restaurants table
+      'supermarketId': dbJson['supermarket_id'] ?? '',
       'items': [], // Would need to join with order_items table
       'deliveryAddress': dbJson['delivery_address'] ?? {},
       'subtotal': dbJson['subtotal'],
