@@ -14,6 +14,19 @@ const _kDeliveryIdKey = 'bg_delivery_id';
 const _kNotifChannelId = 'cmandili_driver_location';
 const _kNotifId = 888;
 
+// Same alarm channel/notification ID as push_service.dart and
+// CmandiliMessagingService.kt — shown directly from this isolate as a
+// Realtime-driven fallback (see _onStart) for when the FCM broadcast never
+// reaches the app at all (observed: MIUI cancels the wake broadcast for a
+// closed app before either FCM handler runs, even with battery/autostart/
+// appops all granted). Reusing the ID means whichever path fires first wins
+// and the other is a harmless no-op update/cancel on the same notification.
+const _kAlarmChannelId = 'cmandili_driver_alarm_2';
+const _kAlarmChannelName = 'Delivery Offer';
+const _kAlarmChannelDesc =
+    'Incoming delivery requests that require immediate attention';
+const _kAlarmNotifId = 101;
+
 /// Starts / stops a foreground background-service that streams GPS to Supabase
 /// even when the driver navigates away from the tracking screen or backgrounds the app.
 class BackgroundLocationService {
@@ -155,6 +168,100 @@ void _onStart(ServiceInstance service) async {
   // Listen for stop command from UI
   service.on('stop').listen((_) {
     service.stopSelf();
+  });
+
+  // ── Delivery-offer alarm via Realtime — bypasses FCM entirely ─────────────
+  // This foreground service is already running whenever the driver is online,
+  // so instead of depending on an FCM broadcast waking a closed app (which
+  // MIUI has been observed to cancel before either the native or Dart FCM
+  // handler ever runs), listen to the DB directly for this driver being
+  // offered an order and show the same alarm notification from here.
+  final offerLocal = FlutterLocalNotificationsPlugin();
+  await offerLocal.initialize(
+    const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
+    ),
+  );
+  await offerLocal
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(AndroidNotificationChannel(
+        _kAlarmChannelId,
+        _kAlarmChannelName,
+        description: _kAlarmChannelDesc,
+        importance: Importance.max,
+        playSound: true,
+        sound: const RawResourceAndroidNotificationSound('new_order'),
+        enableVibration: true,
+        vibrationPattern:
+            Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
+      ));
+
+  // Tracks the order currently being alarmed so a repeat snapshot of the same
+  // still-open offer doesn't re-trigger the sound, and so the notification is
+  // cancelled once the offer is no longer open (accepted elsewhere in the UI,
+  // or rotated away by rotate_expired_offers()).
+  String? activeOfferOrderId;
+  final offerSub = supabase
+      .from('orders')
+      .stream(primaryKey: ['id'])
+      .eq('assigned_driver_id', driverId)
+      .listen((rows) async {
+    Map<String, dynamic>? openOffer;
+    for (final row in rows) {
+      if (row['driver_id'] == null) {
+        openOffer = row;
+        break;
+      }
+    }
+
+    if (openOffer != null && openOffer['id'] != activeOfferOrderId) {
+      activeOfferOrderId = openOffer['id'] as String;
+      final distanceKm = openOffer['distance_km'] as num?;
+      final body = distanceKm != null
+          ? 'Acceptez dans les 30 secondes.  (${distanceKm.toStringAsFixed(1)} km)'
+          : 'Acceptez dans les 30 secondes.';
+      await offerLocal.show(
+        _kAlarmNotifId,
+        '🔔 Nouvelle livraison',
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _kAlarmChannelId,
+            _kAlarmChannelName,
+            channelDescription: _kAlarmChannelDesc,
+            importance: Importance.max,
+            priority: Priority.max,
+            playSound: true,
+            sound: const RawResourceAndroidNotificationSound('new_order'),
+            audioAttributesUsage: AudioAttributesUsage.alarm,
+            enableVibration: true,
+            vibrationPattern:
+                Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
+            additionalFlags: Int32List.fromList([4]), // FLAG_INSISTENT
+            fullScreenIntent: true,
+            visibility: NotificationVisibility.public,
+            category: AndroidNotificationCategory.call,
+            ongoing: true,
+            autoCancel: false,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentSound: true,
+            sound: 'new_order.wav',
+            interruptionLevel: InterruptionLevel.critical,
+          ),
+        ),
+      );
+    } else if (openOffer == null && activeOfferOrderId != null) {
+      activeOfferOrderId = null;
+      await offerLocal.cancel(_kAlarmNotifId);
+    }
+  });
+
+  service.on('stop').listen((_) {
+    offerSub.cancel();
+    offerLocal.cancel(_kAlarmNotifId);
   });
 
   // Stream GPS with high accuracy, 30m filter
