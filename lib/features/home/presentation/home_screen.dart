@@ -8,6 +8,7 @@ import 'package:cmandili_driver/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_map.dart';
 import '../../../core/push/push_service.dart';
+import '../../../core/utils/miui_autostart_helper.dart';
 import '../../orders/presentation/available_orders_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
 import '../../orders/presentation/widgets/order_offer_dialog.dart';
@@ -63,6 +64,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // at the app sees the dialog appear on its own, no push and no
     // background/foreground cycle required.
     _subscribeToOfferChanges();
+
+    // Best-effort mitigation for the gap above: on MIUI, even the alarm
+    // notification path can arrive minutes late (or not at all) because MIUI
+    // cancels the FCM wake broadcast for a backgrounded/killed app unless
+    // "Autostart" is granted — a Xiaomi-specific toggle outside the standard
+    // Android battery-optimization permission already requested elsewhere.
+    // One-time prompt, persisted so it doesn't nag on every launch.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybePromptMiuiAutostart());
+  }
+
+  Future<void> _maybePromptMiuiAutostart() async {
+    if (!await MiuiAutostartHelper.shouldPrompt() || !mounted) return;
+    await MiuiAutostartHelper.markPrompted();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Activer le démarrage automatique'),
+        content: const Text(
+          'Sur les téléphones Xiaomi, les nouvelles livraisons peuvent '
+          'sonner en retard ou pas du tout si le "Démarrage automatique" '
+          'de Cmandili Driver n\'est pas activé. Activez-le dans les '
+          'paramètres pour recevoir les alertes instantanément.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Plus tard'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              MiuiAutostartHelper.openSettings();
+            },
+            child: const Text('Activer'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _subscribeToOfferChanges() async {

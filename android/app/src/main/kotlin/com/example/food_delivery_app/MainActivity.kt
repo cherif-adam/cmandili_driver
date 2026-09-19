@@ -1,7 +1,11 @@
 package com.cmandili.driver
 
+import android.content.ComponentName
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -47,6 +51,8 @@ class MainActivity : FlutterActivity() {
                     result.success(pendingOrderId)
                     pendingOrderId = null // consume — only surface the offer once
                 }
+                "getManufacturer" -> result.success(Build.MANUFACTURER)
+                "openAutoStartSettings" -> result.success(openAutoStartSettings())
                 else -> result.notImplemented()
             }
         }
@@ -68,5 +74,43 @@ class MainActivity : FlutterActivity() {
         if (intent?.getStringExtra("notification_type") != "offer_to_driver") return null
         val orderId = intent.getStringExtra("order_id")
         return if (orderId.isNullOrBlank()) null else orderId
+    }
+
+    /**
+     * MIUI keeps a separate "Autostart" toggle outside the standard Android
+     * battery-optimization API — Permission.ignoreBatteryOptimizations (already
+     * requested in push_service.dart) only covers stock Doze. Without Autostart
+     * granted, MIUI can cancel the FCM wake broadcast before it ever reaches
+     * CmandiliMessagingService, which is what makes delivery-offer alarms
+     * arrive minutes late (observed live: ~2 min) or not at all on Xiaomi
+     * devices. There's no public API for this — AutoStartManagementActivity is
+     * the component every major app (WhatsApp, Telegram, etc.) targets for it
+     * and has been stable across MIUI releases, but we still fall back to the
+     * app's own settings page if it doesn't resolve (non-MIUI Xiaomi builds, or
+     * a future MIUI version that renamed it). Returns true if the MIUI-specific
+     * screen was reached, false if we fell back to generic app settings.
+     */
+    private fun openAutoStartSettings(): Boolean {
+        try {
+            startActivity(Intent().apply {
+                component = ComponentName(
+                    "com.miui.securitycenter",
+                    "com.miui.permcenter.autostart.AutoStartManagementActivity",
+                )
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+            return true
+        } catch (_: Exception) {
+            // Not MIUI, or a version that renamed/removed this activity.
+        }
+        return try {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+            false
+        } catch (_: Exception) {
+            false
+        }
     }
 }
