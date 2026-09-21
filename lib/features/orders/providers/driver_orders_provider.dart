@@ -79,7 +79,8 @@ final availableOrdersProvider = StreamProvider<List<Order>>((ref) async* {
     try {
       final itemRows = await _supabase
           .from('order_items')
-          .select('order_id, quantity, food_items(name), grocery_items(name)')
+          .select('order_id, quantity, food_items:food_items_legacy(name), '
+              'grocery_items:grocery_items_legacy(name)')
           .inFilter('order_id', ids);
       final byOrder = <String, List<Map<String, dynamic>>>{};
       for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {
@@ -136,7 +137,7 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
 
   final rows = await _supabase
       .from('orders')
-      .select('*, restaurants(name)')
+      .select('*, restaurants:restaurants_legacy(name)')
       .eq('driver_id', driverIdAsync)
       .eq('status', 'delivered')
       .order('created_at', ascending: false);
@@ -152,7 +153,8 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
     try {
       final itemRows = await _supabase
           .from('order_items')
-          .select('order_id, quantity, food_items(name), grocery_items(name)')
+          .select('order_id, quantity, food_items:food_items_legacy(name), '
+              'grocery_items:grocery_items_legacy(name)')
           .inFilter('order_id', ids);
       final byOrder = <String, List<Map<String, dynamic>>>{};
       for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {

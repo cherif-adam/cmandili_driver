@@ -127,8 +127,10 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
                 'delivery_address, restaurant_id, supermarket_id, '
                 'loyalty_milestone_type, loyalty_discount_amount, '
                 'order_type, package_description, bill_type, assignment_expires_at, '
-                'order_items(quantity, food_items(name), grocery_items(name)), '
-                'restaurants(name), supermarkets(name)')
+                'order_items(quantity, food_items:food_items_legacy(name), '
+                'grocery_items:grocery_items_legacy(name)), '
+                'restaurants:restaurants_legacy(name), '
+                'supermarkets:supermarkets_legacy(name)')
             .eq('id', widget.orderId)
             .maybeSingle();
         break;
