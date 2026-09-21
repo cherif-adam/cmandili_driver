@@ -1,5 +1,6 @@
 package com.cmandili.driver
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.media.AudioAttributes
@@ -21,10 +22,16 @@ class Application : FlutterApplication() {
             // list as a dead, permanently-silent duplicate.
             nm.deleteNotificationChannel("cmandili_driver_alarm_2")
 
+            // Same caching rule applies to the standard channel: the installed
+            // "cmandili_orders" was created silent (the Dart side created it
+            // first, without a sound) and cannot be fixed in place, so it is
+            // dropped and re-created under a fresh id.
+            nm.deleteNotificationChannel("cmandili_orders")
+
             // Standard delivery status updates
             nm.createNotificationChannel(
                 NotificationChannel(
-                    "cmandili_orders",
+                    "cmandili_orders_v2",
                     "Order Updates",
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
@@ -56,17 +63,29 @@ class Application : FlutterApplication() {
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
 
+            // _3 -> _4: importance and DND-bypass are also frozen at creation
+            // time, so raising the channel to IMPORTANCE_MAX and letting it
+            // through Do Not Disturb needs a new id. IMPORTANCE_HIGH shows a
+            // heads-up but IMPORTANCE_MAX is what reliably drives the
+            // full-screen intent on a locked screen.
+            nm.deleteNotificationChannel("cmandili_driver_alarm_3")
+
             nm.createNotificationChannel(
                 NotificationChannel(
-                    "cmandili_driver_alarm_3",
+                    "cmandili_driver_alarm_4",
                     "Delivery Offer Alert",
-                    NotificationManager.IMPORTANCE_HIGH,
+                    NotificationManager.IMPORTANCE_MAX,
                 ).apply {
                     description = "Alarm-level alert for incoming delivery offers"
                     setSound(soundUri, alarmAttrs)
                     enableVibration(true)
                     vibrationPattern = longArrayOf(0, 400, 200, 400, 200, 400, 200, 800)
                     setShowBadge(true)
+                    // A driver misses paid work if an offer is muted by a
+                    // Do Not Disturb schedule they forgot was on.
+                    setBypassDnd(true)
+                    enableLights(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 }
             )
         }

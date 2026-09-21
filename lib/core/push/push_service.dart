@@ -7,13 +7,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
-const String _kChannelId   = 'cmandili_orders';
+const String _kChannelId   = 'cmandili_orders_v2';
 const String _kChannelName = 'Order updates';
 const String _kChannelDesc = 'New deliveries and order updates';
 
 // Alarm channel — alarm AudioAttributes + max importance so the offer rings
 // even when the phone is in silent/vibrate mode.
-const String _kAlarmChannelId   = 'cmandili_driver_alarm_3';
+const String _kAlarmChannelId   = 'cmandili_driver_alarm_4';
 const String _kAlarmChannelName = 'Delivery Offer';
 const String _kAlarmChannelDesc =
     'Incoming delivery requests that require immediate attention';
@@ -69,7 +69,7 @@ Future<void> _showAlarmNotification(
       iOS: const DarwinNotificationDetails(
         presentSound: true,
         // File: Runner/Resources/driver_alarm.wav (max 30 s on iOS).
-        sound: 'new_order.wav',
+        sound: 'new_order.mp3',
         // critical alert: overrides silent/DND on iOS (requires entitlement).
         // Without that entitlement granted by Apple for this app, iOS treats
         // this as a normal alert instead — a platform limit, not a bug here.
@@ -212,11 +212,19 @@ class PushService {
         AndroidFlutterLocalNotificationsPlugin>();
 
     // Standard channel for non-urgent status updates.
+    //
+    // playSound MUST be set explicitly. On Android O+ a channel created without
+    // a sound is created permanently SILENT -- it does not fall back to the
+    // default tone. Application.kt creates this same id with a sound, but
+    // whichever call runs first wins and the channel is then immutable, so a
+    // silent definition here left status notifications with no audio at all.
     await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
       _kChannelId,
       _kChannelName,
       description: _kChannelDesc,
       importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
     ));
 
     // Alarm channel for delivery offers.
@@ -342,7 +350,7 @@ class PushService {
     // notification's numAlertViolations climbing independently of DND/
     // volume/channel config — which then silently denies sound to whatever
     // alert-eligible notification fires next, including the unrelated
-    // cmandili_driver_alarm_3 delivery-offer channel. onlyAlertOnce stops a
+    // cmandili_driver_alarm_4 delivery-offer channel. onlyAlertOnce stops a
     // later update to the same order from re-triggering sound/vibration.
     final orderId = message.data['order_id'] as String?;
     final notifId = orderId != null && orderId.isNotEmpty

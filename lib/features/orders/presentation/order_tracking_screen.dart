@@ -10,6 +10,7 @@ import 'package:cmandili_driver/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/services/background_location_service.dart';
+import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
 import '../data/models/order.dart';
 import '../providers/order_provider.dart';
@@ -51,6 +52,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   String? _pickupFetchedForOrderId;
   bool _boundsFitted = false;
 
+  /// The street-following route currently drawn, from the driver to whichever
+  /// leg they are on (pickup first, then the drop-off). Carries the ETA,
+  /// remaining distance and the road names to follow.
+  AppRoute? _route;
+  /// Destination the drawn route was computed for. When the driver collects
+  /// the order the destination flips from pickup to delivery, which makes the
+  /// old line wrong outright rather than merely stale.
+  ({double lat, double lng})? _lastRouteDestination;
+  bool _routeFetchInFlight = false;
+  DateTime? _lastRouteFetchAt;
+
   @override
   void initState() {
     super.initState();
@@ -67,32 +79,27 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   Future<void> _fetchPickupLocation(Order order) async {
     if (_pickupFetchedForOrderId == order.id) return;
     _pickupFetchedForOrderId = order.id;
+    // Both ids point at the same `vendors` table, so one lookup covers every
+    // category. Querying the legacy restaurants/supermarkets views instead
+    // would silently return nothing for a florist, pet shop or bakery order
+    // — those views filter on their own category — and the driver would get
+    // no pickup pin at all.
+    final vendorId = order.restaurantId.isNotEmpty
+        ? order.restaurantId
+        : order.supermarketId;
+    if (vendorId.isEmpty) return;
     try {
-      if (order.restaurantId.isNotEmpty) {
-        final r = await _supabase
-            .from('restaurants')
-            .select('name, latitude, longitude')
-            .eq('id', order.restaurantId)
-            .maybeSingle();
-        if (r == null || !mounted) return;
-        setState(() {
-          _pickupLat = (r['latitude'] as num?)?.toDouble();
-          _pickupLng = (r['longitude'] as num?)?.toDouble();
-          _pickupName = r['name'] as String?;
-        });
-      } else if (order.supermarketId.isNotEmpty) {
-        final s = await _supabase
-            .from('supermarkets')
-            .select('name, latitude, longitude')
-            .eq('id', order.supermarketId)
-            .maybeSingle();
-        if (s == null || !mounted) return;
-        setState(() {
-          _pickupLat = (s['latitude'] as num?)?.toDouble();
-          _pickupLng = (s['longitude'] as num?)?.toDouble();
-          _pickupName = s['name'] as String?;
-        });
-      }
+      final row = await _supabase
+          .from('vendors')
+          .select('name, latitude, longitude')
+          .eq('id', vendorId)
+          .maybeSingle();
+      if (row == null || !mounted) return;
+      setState(() {
+        _pickupLat = (row['latitude'] as num?)?.toDouble();
+        _pickupLng = (row['longitude'] as num?)?.toDouble();
+        _pickupName = row['name'] as String?;
+      });
     } catch (e) {
       debugPrint('Failed to fetch pickup location: $e');
     }
@@ -186,6 +193,29 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           if (!mounted || rows.isEmpty) return;
           _activeDeliveryId ??= rows.first['id'] as String?;
         });
+  }
+
+  /// Fetches the street-following route for the leg the driver is currently
+  /// on and redraws it. Called from build() whenever the line has gone stale
+  /// — see the caller for the off-route rule that decides that.
+  Future<void> _fetchRoute({
+    required ({double lat, double lng}) origin,
+    required ({double lat, double lng}) destination,
+  }) async {
+    if (_routeFetchInFlight) return;
+    _routeFetchInFlight = true;
+    _lastRouteDestination = destination;
+    _lastRouteFetchAt = DateTime.now();
+    try {
+      final route = await RouteService.fetchDrivingRoute(
+        origin: origin,
+        destination: destination,
+      );
+      if (route == null || !mounted) return;
+      setState(() => _route = route);
+    } finally {
+      _routeFetchInFlight = false;
+    }
   }
 
   @override
@@ -389,6 +419,37 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     // paint with a real driver fix, so the driver immediately sees both the
     // restaurant/client positions relative to themself instead of a map
     // centered arbitrarily. Mirrors the client app's own tracking screen.
+    // Which leg is the driver on? Before collection the route runs to the
+    // pickup point; once the order is picked up / on the way it runs to the
+    // customer. Routing to the wrong leg would send them across town.
+    final beforePickup = order.status != OrderStatus.pickedUp &&
+        order.status != OrderStatus.onTheWay;
+    final routeDestination = (beforePickup && hasPickup)
+        ? (lat: pickupLat, lng: pickupLng)
+        : (lat: deliveryLat, lng: deliveryLng);
+
+    // Re-route on deviation rather than on distance covered: a driver
+    // following the drawn line stays within GPS noise of it however far they
+    // drive, while one who takes a different street is off it within a block
+    // and gets a fresh line (and fresh street names) straight away.
+    if (hasLocation) {
+      final destinationChanged = _lastRouteDestination != routeDestination;
+      final wentAnotherWay = RouteFreshness.isOffRoute(
+        _route?.points,
+        (lat: _myLat!, lng: _myLng!),
+      );
+      final rateLimitPassed = _lastRouteFetchAt == null ||
+          DateTime.now().difference(_lastRouteFetchAt!) >
+              RouteFreshness.kMinRefetchInterval;
+      if (!_routeFetchInFlight &&
+          (destinationChanged || (wentAnotherWay && rateLimitPassed))) {
+        _fetchRoute(
+          origin: (lat: _myLat!, lng: _myLng!),
+          destination: routeDestination,
+        );
+      }
+    }
+
     if (hasLocation && !_boundsFitted) {
       _boundsFitted = true;
       final points = <({double lat, double lng})>[
@@ -413,6 +474,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             initialLongitude: hasLocation ? _myLng! : deliveryLng,
             initialZoom: 14,
             showUserLocationPuck: true,
+            polyline: _route?.points,
+            // The details sheet covers the lower ~40% of the screen; telling
+            // the map about it keeps Google's own controls (including the
+            // my-location button) clear of the sheet and centres fitted
+            // routes in the part still visible.
+            contentPadding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).size.height * 0.4,
+            ),
+            // The driver is navigating live here, so traffic shading is
+            // exactly the information they need.
+            showTraffic: true,
             markers: {
               AppMapMarker(
                 id: 'delivery',
@@ -467,25 +539,40 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               ),
             ),
 
-          // Top back button
+          // Top back button, with the live navigation banner beside it so the
+          // road to take and the ETA are readable without opening the sheet.
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha:0.1),
-                      blurRadius: 8,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  if (_route != null) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _NavBanner(
+                        route: _route!,
+                        toPickup: beforePickup && hasPickup,
+                      ),
                     ),
                   ],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                ),
+                ],
               ),
             ),
           ),
@@ -676,6 +763,74 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 // ── Helper sub-widgets ────────────────────────────────────────────────────────
 
 /// Orange-bordered info card showing a labelled address with an icon.
+/// Compact navigation banner pinned to the top of the driver's map: the road
+/// to take next, plus the traffic-aware ETA and remaining distance for the
+/// leg they are on. Redrawn whenever the route is re-fetched, so taking a
+/// different street updates this immediately.
+class _NavBanner extends StatelessWidget {
+  final AppRoute route;
+
+  /// True while the driver is still heading to the collection point, which
+  /// changes what the banner says they are driving towards.
+  final bool toPickup;
+
+  const _NavBanner({required this.route, required this.toPickup});
+
+  @override
+  Widget build(BuildContext context) {
+    final street = route.currentStreet;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                toPickup ? Icons.storefront_rounded : Icons.home_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${route.etaLabel} • ${route.distanceLabel}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          if (street != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              street,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _AddressCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;

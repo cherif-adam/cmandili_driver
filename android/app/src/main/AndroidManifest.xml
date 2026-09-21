@@ -55,7 +55,7 @@
         <!-- Default channel id for FCM `notification` payloads. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="cmandili_orders" />
+            android:value="cmandili_orders_v2" />
         <!-- Default icon used when the OS renders an FCM notification while the
              app is killed. Without this, Android silently drops the notification. -->
         <meta-data
@@ -66,6 +66,12 @@
             android:resource="@color/notification_color" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Google Maps SDK key. Unlike Mapbox (which took its token at runtime
+             via MapboxOptions.setAccessToken), the Maps SDK reads this from the
+             manifest at process start, so it must live here. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyB7OWrWJqmgV_ZU9EYFMxBYC_TOHwgy0" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
