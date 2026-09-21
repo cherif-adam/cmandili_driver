@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/services/background_location_service.dart';
 import '../../providers/driver_orders_provider.dart';
+import 'offer_route_preview.dart';
 
 /// Card title — type-aware so a driver can't mistake a courier package for
 /// a food order (or vice versa) before deciding to accept. A named
@@ -27,6 +28,43 @@ String _offerTitle(Map<String, dynamic> order, String partnerName) {
 /// ballpark before deciding; deliberately not a real Mapbox-routed ETA (that
 /// would mean an extra HTTP call + API cost on every single offer).
 const double _kAssumedAvgSpeedKmh = 25;
+
+/// Where the driver physically goes FIRST, which is not the customer.
+///
+/// - food / supermarket: the venue's own coordinates.
+/// - courier: `pickup_address`, the sender's location — there is no venue row.
+/// - facture (bill payment): no pickup point exists at all, so no map.
+///
+/// Returns null whenever a usable point can't be resolved, including the (0,0)
+/// placeholder that venues carry before anyone sets a real location.
+({double lat, double lng, String? label})? _pickupPoint(
+    Map<String, dynamic> order) {
+  double? lat, lng;
+  String? label;
+
+  final venue = (order['restaurants'] is Map)
+      ? order['restaurants'] as Map
+      : (order['supermarkets'] is Map)
+          ? order['supermarkets'] as Map
+          : null;
+
+  if (venue != null) {
+    lat = (venue['latitude'] as num?)?.toDouble();
+    lng = (venue['longitude'] as num?)?.toDouble();
+    label = venue['name'] as String?;
+  } else {
+    final pickup = order['pickup_address'];
+    if (pickup is Map) {
+      lat = (pickup['latitude'] as num?)?.toDouble();
+      lng = (pickup['longitude'] as num?)?.toDouble();
+      label = (pickup['fullAddress'] ?? pickup['label']) as String?;
+    }
+  }
+
+  if (lat == null || lng == null) return null;
+  if (lat.abs() < 0.0001 && lng.abs() < 0.0001) return null;
+  return (lat: lat, lng: lng, label: label);
+}
 
 /// "Pizza Margherita x2, et 3 autres" — food/supermarket orders only.
 String? _offerItemsSummary(Map<String, dynamic> order) {
@@ -91,6 +129,9 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
   // When true, the inline reject-confirmation panel is visible.
   // The countdown timer is NOT paused — it keeps ticking normally.
   bool _confirmingReject = false;
+  // Driver origin for the map preview; null until resolved (or if unavailable).
+  double? _driverLat;
+  double? _driverLng;
 
   @override
   void initState() {
@@ -127,10 +168,11 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
                 'delivery_address, restaurant_id, supermarket_id, '
                 'loyalty_milestone_type, loyalty_discount_amount, '
                 'order_type, package_description, bill_type, assignment_expires_at, '
+                'pickup_address, '
                 'order_items(quantity, food_items:food_items_legacy(name), '
                 'grocery_items:grocery_items_legacy(name)), '
-                'restaurants:restaurants_legacy(name), '
-                'supermarkets:supermarkets_legacy(name)')
+                'restaurants:restaurants_legacy(name, latitude, longitude), '
+                'supermarkets:supermarkets_legacy(name, latitude, longitude)')
             .eq('id', widget.orderId)
             .maybeSingle();
         break;
@@ -166,6 +208,41 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
     });
 
     if (remaining == 0) _onPass(auto: true);
+    unawaited(_loadDriverPosition());
+  }
+
+  /// Driver origin for the map preview.
+  ///
+  /// Read from `drivers.current_lat/current_lng` — the SAME row the server used
+  /// when it stamped `driver_offer_distance_km` — rather than taking a fresh
+  /// GPS fix. A fresh fix would drift from the distance pill, so the line and
+  /// the number shown next to it would visibly disagree. It also avoids waiting
+  /// on a GPS lock in the one place we can't afford latency: this dialog can
+  /// open on a cold start with the countdown already running.
+  ///
+  /// Deliberately fired after the order is rendered and never awaited by the
+  /// UI — the map is additive, so a failure here just means no preview.
+  Future<void> _loadDriverPosition() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      final row = await Supabase.instance.client
+          .from('drivers')
+          .select('current_lat, current_lng')
+          .eq('user_id', userId)
+          .maybeSingle();
+      final lat = (row?['current_lat'] as num?)?.toDouble();
+      final lng = (row?['current_lng'] as num?)?.toDouble();
+      if (!mounted || lat == null || lng == null) return;
+      // (0,0) is the "never reported a position" placeholder, not Null Island.
+      if (lat.abs() < 0.0001 && lng.abs() < 0.0001) return;
+      setState(() {
+        _driverLat = lat;
+        _driverLng = lng;
+      });
+    } catch (e) {
+      debugPrint('OrderOfferDialog: driver position lookup failed: $e');
+    }
   }
 
   Future<void> _onAccept() async {
@@ -448,6 +525,7 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
     final addr = order['delivery_address'];
     final addrText = (addr is Map ? (addr['fullAddress'] ?? addr['address'] ?? '') : '') as String;
     final loyaltyMilestoneType = order['loyalty_milestone_type'] as String?;
+    final pickup = _pickupPoint(order);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -583,6 +661,21 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
               ),
           ],
         ),
+        // Driver -> pickup preview. Shown only once BOTH ends are known, so it
+        // never renders a line to nowhere: facture orders have no pickup point,
+        // and the driver origin arrives asynchronously (and may never arrive if
+        // the driver has not reported a position yet). Additive by design — the
+        // pills above already carry everything needed to decide.
+        if (pickup != null && _driverLat != null && _driverLng != null) ...[
+          const SizedBox(height: 8),
+          OfferRoutePreview(
+            driverLat: _driverLat!,
+            driverLng: _driverLng!,
+            pickupLat: pickup.lat,
+            pickupLng: pickup.lng,
+            pickupLabel: pickup.label,
+          ),
+        ],
         const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerRight,
