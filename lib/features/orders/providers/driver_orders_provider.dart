@@ -80,7 +80,7 @@ final availableOrdersProvider = StreamProvider<List<Order>>((ref) async* {
       final itemRows = await _supabase
           .from('order_items')
           .select('order_id, quantity, food_items:food_items_legacy(name), '
-              'grocery_items:grocery_items_legacy(name)')
+              'grocery_items:grocery_items_legacy(name), vendor_items(name)')
           .inFilter('order_id', ids);
       final byOrder = <String, List<Map<String, dynamic>>>{};
       for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {
@@ -137,7 +137,9 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
 
   final rows = await _supabase
       .from('orders')
-      .select('*, restaurants:restaurants_legacy(name)')
+      // orders.restaurant_id now FKs to `vendors`, so the legacy alias has no
+      // relationship left to traverse and this select returned PGRST200.
+      .select('*, restaurants:vendors!orders_restaurant_id_fkey(name)')
       .eq('driver_id', driverIdAsync)
       .eq('status', 'delivered')
       .order('created_at', ascending: false);
@@ -154,7 +156,7 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
       final itemRows = await _supabase
           .from('order_items')
           .select('order_id, quantity, food_items:food_items_legacy(name), '
-              'grocery_items:grocery_items_legacy(name)')
+              'grocery_items:grocery_items_legacy(name), vendor_items(name)')
           .inFilter('order_id', ids);
       final byOrder = <String, List<Map<String, dynamic>>>{};
       for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {
@@ -270,7 +272,14 @@ String? _buildContentSummary(List<Map<String, dynamic>> items) {
       .map((it) {
         final foodItem = it['food_items'] as Map<String, dynamic>?;
         final groceryItem = it['grocery_items'] as Map<String, dynamic>?;
-        final name = (foodItem?['name'] ?? groceryItem?['name'] ?? '') as String;
+        // Generic-category lines (flowers, pets, gifts, bakery, electronics)
+        // live in vendor_items — without this the driver's order summary was
+        // blank for every one of those orders.
+        final vendorItem = it['vendor_items'] as Map<String, dynamic>?;
+        final name = (foodItem?['name'] ??
+            groceryItem?['name'] ??
+            vendorItem?['name'] ??
+            '') as String;
         final qty = (it['quantity'] as num?)?.toInt() ?? 1;
         return qty > 1 ? '$name x$qty' : name;
       })

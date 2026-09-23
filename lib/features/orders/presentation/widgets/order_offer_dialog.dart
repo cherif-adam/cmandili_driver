@@ -77,7 +77,15 @@ String? _offerItemsSummary(Map<String, dynamic> order) {
       .map((it) {
         final foodItem = it['food_items'] as Map<String, dynamic>?;
         final groceryItem = it['grocery_items'] as Map<String, dynamic>?;
-        final name = (foodItem?['name'] ?? groceryItem?['name'] ?? '') as String;
+        // Flowers, pets, gifts, bakery and electronics lines live in
+        // vendor_items. They ride order_type 'food' (the orders_order_type
+        // check has no per-category value), so without this branch those
+        // orders reached the driver with a blank item summary.
+        final vendorItem = it['vendor_items'] as Map<String, dynamic>?;
+        final name = (foodItem?['name'] ??
+            groceryItem?['name'] ??
+            vendorItem?['name'] ??
+            '') as String;
         final qty = (it['quantity'] as num?)?.toInt() ?? 1;
         return qty > 1 ? '$name x$qty' : name;
       })
@@ -170,9 +178,18 @@ class _OrderOfferDialogState extends ConsumerState<OrderOfferDialog> {
                 'order_type, package_description, bill_type, assignment_expires_at, '
                 'pickup_address, '
                 'order_items(quantity, food_items:food_items_legacy(name), '
-                'grocery_items:grocery_items_legacy(name)), '
-                'restaurants:restaurants_legacy(name, latitude, longitude), '
-                'supermarkets:supermarkets_legacy(name, latitude, longitude)')
+                'grocery_items:grocery_items_legacy(name), '
+                'vendor_items(name)), '
+                // orders.restaurant_id / .supermarket_id now both FK to
+                // `vendors`, so the embed resolves there and the legacy alias
+                // no longer has a relationship to traverse. Both columns point
+                // at the same table, so each embed names its FK constraint to
+                // disambiguate. Aliased back to restaurants/supermarkets so
+                // the JSON keys this widget already reads stay unchanged.
+                'restaurants:vendors!orders_restaurant_id_fkey'
+                '(name, latitude, longitude), '
+                'supermarkets:vendors!orders_supermarket_id_fkey'
+                '(name, latitude, longitude)')
             .eq('id', widget.orderId)
             .maybeSingle();
         break;
