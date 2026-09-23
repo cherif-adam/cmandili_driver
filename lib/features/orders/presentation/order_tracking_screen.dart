@@ -12,6 +12,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/services/background_location_service.dart';
 import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
+import '../../../core/widgets/customer_contact.dart';
 import '../data/models/order.dart';
 import '../providers/order_provider.dart';
 import '../providers/driver_orders_provider.dart';
@@ -390,6 +391,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
+  /// The number to reach the customer on. Courier and facture orders carry
+  /// the sender's own number; standard orders carry the account holder's.
+  /// Falling back between them means the button is never missing just
+  /// because one field happens to be empty for that order type.
+  String? _customerPhone(Order order) {
+    for (final p in [order.customerPhone, order.senderPhone, order.recipientPhone]) {
+      if (p != null && p.trim().isNotEmpty) return p.trim();
+    }
+    return null;
+  }
+
   bool _isFacture(Order order) =>
       order.type == OrderType.facture || order.type == OrderType.billPayment;
 
@@ -632,6 +644,26 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           : order.deliveryAddress.label,
                     ),
                     const SizedBox(height: 12),
+
+                    // ── Customer contact ───────────────────────────────────
+                    // Always visible while a delivery is live: a driver at a
+                    // closed gate or a wrong building needs to reach the
+                    // customer immediately, and hunting for the number in
+                    // another screen costs minutes. WhatsApp sits beside the
+                    // call button because it works when the customer has no
+                    // credit or is on data only.
+                    if (_customerPhone(order) != null) ...[
+                      CustomerContact(
+                        phone: _customerPhone(order)!,
+                        label: order.customerName?.isNotEmpty == true
+                            ? 'Client — ${order.customerName}'
+                            : 'Client',
+                        whatsappMessage:
+                            'Bonjour, je suis votre livreur Amana pour la '
+                            'commande #${order.id.substring(0, 6).toUpperCase()}.',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
 
                     // Payment info row
                     Row(
