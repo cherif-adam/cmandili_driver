@@ -51,7 +51,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   double? _pickupLng;
   String? _pickupName;
   String? _pickupFetchedForOrderId;
-  bool _boundsFitted = false;
+  /// The leg the camera is currently framed on. Null until the first fit.
+  /// Compared against the live destination so the map reframes the moment
+  /// the driver collects the order and the target becomes the customer.
+  ({double lat, double lng})? _fittedForLeg;
 
   /// The street-following route currently drawn, from the driver to whichever
   /// leg they are on (pickup first, then the drop-off). Carries the ETA,
@@ -114,9 +117,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     if (permission == LocationPermission.deniedForever) return;
 
     _positionStream = Geolocator.getPositionStream(
+      // bestForNavigation while a delivery is on screen: `high` is a
+      // city-block-grade fix, which is what made the pin sit on the wrong
+      // side of the street and the customer's ETA jump around. Navigation
+      // accuracy keeps the GPS chip in continuous mode, so the position the
+      // customer watches is the driver's real one.
+      //
+      // The 5 m filter matters as much as the accuracy: at 10 m the marker
+      // only moved after the driver had already passed the turn.
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 5,
       ),
     ).listen((pos) async {
       if (!mounted) return;
@@ -462,12 +473,21 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       }
     }
 
-    if (hasLocation && !_boundsFitted) {
-      _boundsFitted = true;
+    // Frame only the leg being driven, and reframe when the leg changes.
+    //
+    // Two problems with fitting all three points once: the driver heading to
+    // the restaurant had the customer's address in frame too, which zooms the
+    // map out far enough that the street they actually need is unreadable;
+    // and because it ran once ever, collecting the order left the camera
+    // still framed on the restaurant they had just left.
+    //
+    // Keying the guard on the destination makes it re-fit exactly when the
+    // leg flips from pickup to drop-off, and not on every GPS tick.
+    if (hasLocation && _fittedForLeg != routeDestination) {
+      _fittedForLeg = routeDestination;
       final points = <({double lat, double lng})>[
         (lat: _myLat!, lng: _myLng!),
-        (lat: deliveryLat, lng: deliveryLng),
-        if (hasPickup) (lat: pickupLat, lng: pickupLng),
+        routeDestination,
       ];
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.fitBounds(points);
@@ -538,10 +558,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 shadowColor: Colors.black.withValues(alpha: 0.2),
                 child: InkWell(
                   customBorder: const CircleBorder(),
+                  // Recenter on the CURRENT leg, matching what the auto-fit
+                  // frames. Including the other end would zoom back out to
+                  // the whole journey, which is what the driver pressed this
+                  // button to get away from.
                   onTap: () => _mapController.fitBounds([
                     (lat: _myLat!, lng: _myLng!),
-                    (lat: deliveryLat, lng: deliveryLng),
-                    if (hasPickup) (lat: pickupLat, lng: pickupLng),
+                    routeDestination,
                   ]),
                   child: const Padding(
                     padding: EdgeInsets.all(12),
