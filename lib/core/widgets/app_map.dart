@@ -105,10 +105,11 @@ const double _kPinLogicalSize = 48;
 
 /// Brand palette used by both the rasterized pins and the route line, kept in
 /// one place so a pin, its route and its shadow can never drift apart.
-const Color _kDeliveryColor = Color(0xFF10B981); // success green — the drop-off
-const Color _kPickupColor = Color(0xFF6C3DE1); // purple — the collection point
-const Color _kDriverColor = Color(0xFF2563EB); // driver-app primary blue — "you"
-const Color _kRouteColor = Color(0xFFF2703F); // primary accent, as before
+const Color _kDeliveryColor = Color(0xFF059669); // brand emerald, same as the client app
+const Color _kPickupColor = Color(0xFF6C3DE1); // brand purple
+const Color _kDriverColor = Color(0xFFF59E0B); // brand amber — the courier
+// Route matches the client app so all three apps draw the same green line.
+const Color _kRouteColor = _kDeliveryColor;
 
 /// Declutters the basemap for delivery use: business/park/school points of
 /// interest and transit lines are hidden, because their tappable labels compete
