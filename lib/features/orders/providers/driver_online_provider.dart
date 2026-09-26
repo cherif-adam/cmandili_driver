@@ -31,7 +31,14 @@ class DriverOnlineNotifier extends StateNotifier<bool> {
     if (mounted) state = row?['is_online'] as bool? ?? false;
   }
 
+  /// Renseigne quand le passage en ligne a reussi cote base mais sans
+  /// position (GPS coupe, permission refusee). L'ecran l'affiche puis le
+  /// remet a null. Volontairement separe de `state`, qui reste un simple
+  /// booleen en ligne / hors ligne.
+  String? lastError;
+
   Future<void> setOnline(bool next) async {
+    lastError = null;
     if (state == next) return;
     final driverId = await _ref.read(currentDriverIdProvider.future);
     if (driverId == null) return;
@@ -54,6 +61,14 @@ class DriverOnlineNotifier extends StateNotifier<bool> {
             DateTime.now().toUtc().toIso8601String();
       } else {
         debugPrint('[Online] ⚠️ Position is NULL — coordinates will NOT be updated');
+        // Sans coordonnees, la carte admin ne peut rien dessiner : le livreur
+        // se croit en ligne et reste invisible du dispatch. Il faut le lui
+        // dire, pas seulement l'ecrire dans les logs.
+        lastError = await LocationService.isLocationServiceEnabled()
+            ? "Autorisation de localisation refusee. Activez-la dans les "
+                "parametres pour apparaitre sur la carte."
+            : "Le GPS est desactive. Activez la localisation pour passer en "
+                "ligne.";
       }
     }
 

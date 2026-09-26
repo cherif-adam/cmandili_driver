@@ -488,9 +488,27 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                               activeTrackColor: Colors.green.shade400,
                               inactiveThumbColor: Colors.white,
                               inactiveTrackColor: Colors.white24,
-                              onChanged: (next) => ref
-                                  .read(driverOnlineProvider.notifier)
-                                  .setOnline(next),
+                              onChanged: (next) async {
+                                final notifier =
+                                    ref.read(driverOnlineProvider.notifier);
+                                await notifier.setOnline(next);
+                                // Passer en ligne sans position laisse le
+                                // livreur invisible sur la carte admin et pour
+                                // le dispatch : le silence ici se paie en
+                                // courses jamais recues.
+                                final err = notifier.lastError;
+                                if (err != null && context.mounted) {
+                                  notifier.lastError = null;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(err),
+                                      backgroundColor: Colors.orange.shade800,
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 6),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ],
                         ),

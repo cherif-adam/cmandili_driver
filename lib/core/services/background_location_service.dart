@@ -343,8 +343,31 @@ void _onStart(ServiceInstance service) async {
     await pushLocation(initialPos);
   } catch (_) {}
 
+  // ── Battement de coeur ────────────────────────────────────────────────────
+  // Le flux GPS n'emet qu'apres un deplacement (distanceFilter). Un livreur
+  // en ligne mais immobile -- en attente devant un restaurant, en pause --
+  // n'ecrit donc plus rien apres son point initial, et la carte admin le
+  // considere hors ligne des que last_location_update depasse 10 minutes
+  // (STALE_AFTER_MINUTES dans app/dashboard/carte/page.tsx). Il disparaissait
+  // de la carte alors que son application tournait.
+  //
+  // Ce timer reecrit la derniere position connue toutes les 4 minutes : assez
+  // frequent pour rester largement sous le seuil des 10 minutes, assez rare
+  // pour ne rien couter en batterie (aucun fix GPS n'est demande, on reutilise
+  // la derniere position que le systeme a deja).
+  Timer? heartbeat;
+  heartbeat = Timer.periodic(const Duration(minutes: 4), (_) async {
+    try {
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) await pushLocation(last);
+    } catch (e) {
+      debugPrint('[BG] heartbeat failed: $e');
+    }
+  });
+
   // Clean up when service stops
   service.on('stop').listen((_) {
     posStream?.cancel();
+    heartbeat?.cancel();
   });
 }
