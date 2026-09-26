@@ -147,7 +147,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           await _supabase.from('drivers').update({
             'current_lat': pos.latitude,
             'current_lng': pos.longitude,
-            'last_location_update': DateTime.now().toIso8601String(),
+            // .toUtc() — see background_location_service.dart. This is the
+            // foreground twin of that write; without it the same one-hour
+            // skew reaches drivers.last_location_update.
+            'last_location_update': DateTime.now().toUtc().toIso8601String(),
           }).eq('id', driverId);
         }
       } catch (e) {
@@ -160,7 +163,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           await _supabase.from('deliveries').update({
             'current_lat': pos.latitude,
             'current_lng': pos.longitude,
-            'updated_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
           }).eq('id', _activeDeliveryId!);
         }
       } catch (e) {

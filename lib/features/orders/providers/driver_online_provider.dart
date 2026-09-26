@@ -46,7 +46,12 @@ class DriverOnlineNotifier extends StateNotifier<bool> {
         debugPrint('[Online] lat=${position.latitude}, lng=${position.longitude}');
         payload['current_lat'] = position.latitude;
         payload['current_lng'] = position.longitude;
-        payload['last_location_update'] = DateTime.now().toIso8601String();
+        // .toUtc() — see background_location_service.dart. This is the path
+        // that runs when the driver flips themselves online, so without it a
+        // driver appeared online with a timestamp an hour in the future from
+        // the very first write.
+        payload['last_location_update'] =
+            DateTime.now().toUtc().toIso8601String();
       } else {
         debugPrint('[Online] ⚠️ Position is NULL — coordinates will NOT be updated');
       }

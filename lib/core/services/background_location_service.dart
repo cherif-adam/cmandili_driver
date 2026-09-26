@@ -292,7 +292,13 @@ void _onStart(ServiceInstance service) async {
           await supabase.from('drivers').update({
             'current_lat': pos.latitude,
             'current_lng': pos.longitude,
-            'last_location_update': DateTime.now().toIso8601String(),
+            // .toUtc() is load-bearing: toIso8601String() on a LOCAL DateTime
+            // emits no timezone suffix, and Postgres reads that into a
+            // TIMESTAMPTZ as UTC — so in Tunisia (UTC+1) every fix landed an
+            // hour in the future. The admin map counts a driver online only if
+            // this is under 10 minutes old, and dispatch reads the same row,
+            // so the skew silently mis-classified who was available.
+            'last_location_update': DateTime.now().toUtc().toIso8601String(),
           }).eq('id', driverId);
         } catch (e) {
           debugPrint('[BG] driver update failed: $e');
@@ -304,7 +310,7 @@ void _onStart(ServiceInstance service) async {
             await supabase.from('deliveries').update({
               'current_lat': pos.latitude,
               'current_lng': pos.longitude,
-              'updated_at': DateTime.now().toIso8601String(),
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
             }).eq('id', deliveryId);
           } catch (e) {
             debugPrint('[BG] delivery update failed: $e');
