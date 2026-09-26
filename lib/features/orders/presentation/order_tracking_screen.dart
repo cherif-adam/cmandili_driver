@@ -67,6 +67,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   bool _routeFetchInFlight = false;
   DateTime? _lastRouteFetchAt;
 
+  /// True once the navigation-grade stream has delivered a fix; from then on
+  /// the one-shot seed in [_seedInitialPosition] must not overwrite it.
+  bool _gotStreamFix = false;
+
+  /// Route the camera was last fitted to, so a freshly fetched route is framed
+  /// once (like the client app) instead of on every GPS tick.
+  AppRoute? _fittedRoute;
+  ({double lat, double lng})? _lastFittedDestination;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +83,45 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     // This prevents the race condition where early GPS updates are discarded
     // because _activeDeliveryId is still null.
     _subscribeToDelivery().then((_) => _startLocationTracking());
+    // Independent of the delivery lookup above: the map, pins and route only
+    // need *a* fix, and the continuous stream can take many seconds (or never
+    // fire indoors) before its first navigation-grade reading. Without this
+    // the screen sat with no driver pin and no route at all.
+    _seedInitialPosition();
+  }
+
+  /// Gets a first position fast — last known, then a one-shot current fix —
+  /// so the route is fetched immediately instead of waiting on the stream.
+  Future<void> _seedInitialPosition() async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null) _applyPosition(last.latitude, last.longitude);
+      final current = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+      _applyPosition(current.latitude, current.longitude);
+    } catch (e) {
+      debugPrint('Initial position failed: $e');
+    }
+  }
+
+  /// Seeds the driver position only if the live stream has not already
+  /// provided a (better) one.
+  void _applyPosition(double lat, double lng) {
+    if (!mounted || _gotStreamFix) return;
+    setState(() {
+      _myLat = lat;
+      _myLng = lng;
+    });
   }
 
   /// Resolves the restaurant/supermarket's lat/lng + name once per order, so
@@ -114,7 +162,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.deniedForever) return;
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
 
     _positionStream = Geolocator.getPositionStream(
       // bestForNavigation while a delivery is on screen: `high` is a
@@ -145,12 +196,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           (lat: pos.latitude, lng: pos.longitude),
         );
       }
+      _gotStreamFix = true;
       setState(() {
         _myLat = pos.latitude;
         _myLng = pos.longitude;
         _myBearing = bearing ?? _myBearing;
       });
-      _mapController.animateToPoint(pos.latitude, pos.longitude);
+      // No per-tick camera recenter: it zoomed back onto the driver on every
+      // fix and hid the route. The camera is framed on the route when one
+      // arrives (see _fetchRoute) and the recenter button is always there.
 
       // Update driver record
       try {
@@ -225,6 +279,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       );
       if (route == null || !mounted) return;
       setState(() => _route = route);
+      // Frame the whole route once per new leg, the way the client app does,
+      // so the driver sees the full line to the destination.
+      if (_fittedRoute == null || destination != _lastFittedDestination) {
+        _fittedRoute = route;
+        _lastFittedDestination = destination;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _mapController.fitBounds(route.points);
+        });
+      }
     } finally {
       _routeFetchInFlight = false;
     }
@@ -671,7 +734,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             initialLatitude: hasLocation ? _myLat! : deliveryLat,
             initialLongitude: hasLocation ? _myLng! : deliveryLng,
             initialZoom: 14,
-            showUserLocationPuck: true,
+            // The amber driver badge already marks "you"; Google's blue dot on
+            // top of it looked like a second, different position.
+            showUserLocationPuck: false,
             polyline: _route?.points,
             // The details sheet covers the lower ~40% of the screen; telling
             // the map about it keeps Google's own controls (including the
@@ -680,9 +745,6 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             contentPadding: EdgeInsets.only(
               bottom: MediaQuery.of(context).size.height * 0.4,
             ),
-            // The driver is navigating live here, so traffic shading is
-            // exactly the information they need.
-            showTraffic: true,
             markers: {
               AppMapMarker(
                 id: 'delivery',
