@@ -136,7 +136,10 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
 
   final rows = await _supabase
       .from('orders')
-      .select('*, restaurants(name)')
+      // Disambiguated FK: `restaurants` is a view over the generic `vendors`
+      // table, so orders reaches it by BOTH restaurant_id and supermarket_id.
+      // PostgREST refuses to guess and fails the query with PGRST201.
+      .select('*, restaurants!orders_restaurant_id_fkey(name)')
       .eq('driver_id', driverIdAsync)
       .eq('status', 'delivered')
       .order('created_at', ascending: false);

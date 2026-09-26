@@ -331,6 +331,172 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     }
   }
 
+  static const _releaseReasons = [
+    'Panne / accident',
+    'Problème de véhicule',
+    'Urgence personnelle',
+    'Trop loin / je ne peux pas livrer',
+    'Autre',
+  ];
+
+  /// Hand the order back so another driver can take it.
+  ///
+  /// This is deliberately NOT a cancellation: the customer still wants their
+  /// order, so it returns to the pool rather than dying. A driver who breaks
+  /// down mid-delivery must be able to let go without the order being lost.
+  ///
+  /// Two cases, and the difference matters for money:
+  ///  * **Before pickup** — the goods are still at the shop. Clearing
+  ///    `driver_id` puts the order back in the available list and the next
+  ///    driver collects from the shop as normal. Nothing is owed.
+  ///  * **After pickup** — the goods are with *this* driver. The order still
+  ///    returns to the pool (status rolls back so the next driver sees a
+  ///    collectable job), but the first driver already burned fuel and time,
+  ///    so a `driver_relay` settlement is recorded for the admin to credit to
+  ///    his wallet. The customer is never charged twice — the relay is paid
+  ///    by the platform, not re-billed.
+  ///
+  /// The driver's id is appended to `passed_driver_ids` either way, so the
+  /// dispatcher does not immediately offer the same order straight back to
+  /// the driver who just gave it up.
+  Future<void> _releaseOrder(Order order) async {
+    final afterPickup = order.status == OrderStatus.pickedUp ||
+        order.status == OrderStatus.onTheWay;
+
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Je ne peux pas livrer',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(
+                afterPickup
+                    ? 'La commande sera proposée à un autre livreur. '
+                      'Vous serez payé pour le trajet déjà effectué — '
+                      'le montant sera crédité sur votre solde par l\'admin.'
+                    : 'La commande retournera à la liste des livraisons '
+                      'disponibles. Aucune pénalité.',
+                style: const TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              ..._releaseReasons.map((r) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(r,
+                        style: const TextStyle(fontWeight: FontWeight.w500)),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () => Navigator.pop(ctx, r),
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (reason == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final driverId = await ref.read(currentDriverIdProvider.future);
+
+      // Re-read the passed list so we append rather than clobber the drivers
+      // who already declined this order.
+      final row = await _supabase
+          .from('orders')
+          .select('passed_driver_ids')
+          .eq('id', widget.orderId)
+          .single();
+      final passed = <String>{
+        ...((row['passed_driver_ids'] as List?)?.cast<String>() ?? const []),
+        if (driverId != null) driverId,
+      }.toList();
+
+      // Roll the order back to a collectable state and release the claim.
+      // Guarded on driver_id so a stale screen cannot yank an order that has
+      // already been reassigned to somebody else.
+      final released = await _supabase
+          .from('orders')
+          .update({
+            'driver_id': null,
+            'assigned_driver_id': null,
+            'status': 'ready',
+            'passed_driver_ids': passed,
+          })
+          .eq('id', widget.orderId)
+          .eq('driver_id', driverId as Object)
+          .select('id');
+
+      if ((released as List).isEmpty) {
+        messenger.showSnackBar(const SnackBar(
+          content: Text('Cette commande ne vous est plus assignée.'),
+          backgroundColor: Colors.orange,
+        ));
+        return;
+      }
+
+      // Close out this driver's delivery row so it stops tracking.
+      if (_activeDeliveryId != null) {
+        await _supabase
+            .from('deliveries')
+            .update({'status': 'cancelled'}).eq('id', _activeDeliveryId!);
+      }
+
+      // Owed for work already done: the admin settles this to the wallet.
+      // Left `pending` on purpose — it is a claim for review, not a payment
+      // the driver can grant himself.
+      if (afterPickup && driverId != null) {
+        final userId = _supabase.auth.currentUser?.id;
+        if (userId != null) {
+          await _supabase.from('settlements').insert({
+            'user_id': userId,
+            'entity_type': 'driver',
+            'amount': order.deliveryFee,
+            'type': 'driver_relay',
+            'status': 'pending',
+            'description':
+                'Trajet partiel #${widget.orderId.substring(0, 8).toUpperCase()} — $reason',
+            'related_order_id': widget.orderId,
+          });
+        }
+      }
+
+      await BackgroundLocationService.stopTracking();
+
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text(afterPickup
+            ? 'Commande relayée. Votre trajet sera crédité par l\'admin.'
+            : 'Commande remise en liste.'),
+        backgroundColor: Colors.orange,
+      ));
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text('Échec : $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
+
   Future<void> _startDelivery() async {
     await _supabase
         .from('orders')
@@ -781,6 +947,30 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         icon: Icons.check_circle_outline,
                         color: AppColors.success,
                         onPressed: _confirmDelivery,
+                      ),
+                    ],
+
+                    // Escape hatch for a driver who cannot finish: breakdown,
+                    // accident, emergency. Available right up to delivery,
+                    // because that is exactly when things go wrong.
+                    if (order.status != OrderStatus.delivered &&
+                        order.status != OrderStatus.cancelled) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _releaseOrder(order),
+                          icon: const Icon(Icons.report_problem_outlined, size: 20),
+                          label: const Text('Je ne peux pas livrer',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.orange.shade800,
+                            side: BorderSide(color: Colors.orange.shade300),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
                       ),
                     ],
 
