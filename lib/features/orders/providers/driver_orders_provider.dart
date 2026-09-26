@@ -137,8 +137,19 @@ final driverDeliveryHistoryProvider = FutureProvider<List<Order>>((ref) async {
 
   final rows = await _supabase
       .from('orders')
-      // orders.restaurant_id now FKs to `vendors`, so the legacy alias has no
-      // relationship left to traverse and this select returned PGRST200.
+      // Two things are going on here, and the embed has to answer both.
+      //
+      // Naming the constraint: `restaurants` is a view over the generic
+      // `vendors` table, so orders reaches it by BOTH restaurant_id and
+      // supermarket_id. PostgREST refuses to guess and fails with PGRST201.
+      //
+      // Targeting `vendors` rather than the `restaurants` view: that view is
+      // filtered to category = 'food', so embedding it returns NULL for an
+      // order placed at a florist, pet shop, bakery, gift or electronics
+      // store -- the driver would see no venue name at all. Verified live:
+      // the same three orders come back "Digital House | Boutique Nour |
+      // Boutique Nour" through vendors, and "NULL | NULL | NULL" through the
+      // view. The alias keeps the JSON key the mappers below expect.
       .select('*, restaurants:vendors!orders_restaurant_id_fkey(name)')
       .eq('driver_id', driverIdAsync)
       .eq('status', 'delivered')
