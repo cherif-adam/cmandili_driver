@@ -109,6 +109,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         playSound: true,
         // File: android/app/src/main/res/raw/new_order.mp3
         sound: const RawResourceAndroidNotificationSound('new_order'),
+        // Channel-level alarm usage: rings through vibrate/silent on Android 8+.
+        audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
         vibrationPattern:
             Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
@@ -235,6 +237,8 @@ class PushService {
       importance: Importance.max,
       playSound: true,
       sound: const RawResourceAndroidNotificationSound('new_order'),
+      // Channel-level alarm usage: rings through vibrate/silent on Android 8+.
+      audioAttributesUsage: AudioAttributesUsage.alarm,
       enableVibration: true,
       vibrationPattern:
           Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
@@ -288,14 +292,37 @@ class PushService {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
     final token = await _fcm.getToken();
-    if (token == null) return;
+    if (token == null) {
+      debugPrint('PushService._registerToken: FCM getToken() returned null');
+      return;
+    }
+    final platform = defaultTargetPlatform.name;
     try {
-      await Supabase.instance.client.from('device_tokens').upsert({
-        'user_id': userId,
-        'token': token,
-        'platform': defaultTargetPlatform.name,
-      }, onConflict: 'token');
-    } catch (_) {}
+      // Replaces this user's previous token for THIS app, and takes the token
+      // back from any other account that used this phone. See migration
+      // 20260929100000_device_tokens_per_app.sql.
+      await Supabase.instance.client.rpc('register_device_token', params: {
+        'p_token': token,
+        'p_platform': platform,
+        'p_app': 'driver',
+      });
+    } catch (e) {
+      // Until that migration runs: upsert on the (user_id, platform) unique
+      // key so a NEW token replaces the old row. The old `onConflict: 'token'`
+      // failed with 23505 on every new token, leaving the server pushing to a
+      // dead one -- which is why notifications stopped arriving.
+      debugPrint('PushService._registerToken: rpc failed ($e), using upsert');
+      try {
+        await Supabase.instance.client.from('device_tokens').upsert({
+          'user_id': userId,
+          'token': token,
+          'platform': platform,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        }, onConflict: 'user_id,platform');
+      } catch (e2) {
+        debugPrint('PushService._registerToken: upsert failed: $e2');
+      }
+    }
   }
 
   // ── Foreground message handler ──────────────────────────────────────────

@@ -21,7 +21,12 @@ const _kNotifId = 888;
 // closed app before either FCM handler runs, even with battery/autostart/
 // appops all granted). Reusing the ID means whichever path fires first wins
 // and the other is a harmless no-op update/cancel on the same notification.
-const _kAlarmChannelId = 'cmandili_driver_alarm_2';
+// Same channel as the FCM path (Application.kt creates it natively with
+// USAGE_ALARM). This used to be 'cmandili_driver_alarm_2', which
+// Application.kt deletes on every launch as a stale id; this isolate then
+// re-created it WITHOUT alarm audio attributes, so on a phone set to vibrate
+// or silent the fallback offer alarm made no sound at all.
+const _kAlarmChannelId = 'cmandili_driver_alarm_4';
 const _kAlarmChannelName = 'Delivery Offer';
 const _kAlarmChannelDesc =
     'Incoming delivery requests that require immediate attention';
@@ -193,6 +198,8 @@ void _onStart(ServiceInstance service) async {
         importance: Importance.max,
         playSound: true,
         sound: const RawResourceAndroidNotificationSound('new_order'),
+        // Channel-level: on Android 8+ the per-notification usage is ignored.
+        audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
         vibrationPattern:
             Int64List.fromList([0, 400, 200, 400, 200, 400, 200, 800]),
