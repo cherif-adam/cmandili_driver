@@ -69,7 +69,17 @@ const double _kAssumedAvgSpeedKmh = 25;
 /// "Pizza Margherita x2, et 3 autres" — food/supermarket orders only.
 String? _offerItemsSummary(Map<String, dynamic> order) {
   final orderType = order['order_type'] as String?;
-  if (orderType != 'food' && orderType != 'supermarket') return null;
+  // Toute commande de COMMERCE a des articles a resumer ; un colis et une
+  // facture n'en ont pas. Le test portait sur 'food' et 'supermarket', ce qui
+  // ne marchait pour les fleuristes et les magasins d'electronique que parce
+  // qu'ils etaient mal etiquetes 'food' -- depuis la migration
+  // 20260930090000 ils portent leur vraie categorie, et le resume serait
+  // redevenu vide.
+  if (orderType == 'courier' ||
+      orderType == 'facture' ||
+      orderType == 'billPayment') {
+    return null;
+  }
   final items = (order['order_items'] as List?) ?? [];
   if (items.isEmpty) return null;
   final names = items

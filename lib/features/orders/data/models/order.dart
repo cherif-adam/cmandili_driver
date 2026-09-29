@@ -12,12 +12,28 @@ enum OrderStatus {
   cancelled,
 }
 
+/// Ce que la commande livre.
+///
+/// Les sept premières valeurs sont les CATÉGORIES DE COMMERCE, avec les mêmes
+/// identifiants que `vendors.category` et `vendor_categories.id` : une seule
+/// liste à tenir pour toute la plateforme.
+///
+/// `supermarket` et `billPayment` ne sont plus jamais écrites. Elles restent
+/// pour que les commandes enregistrées avant la migration
+/// 20260930090000 continuent de se lire — les supprimer les ferait toutes
+/// retomber sur `food` au parsing.
 enum OrderType {
   food,
-  supermarket,
+  grocery,
+  bakery,
+  flowers,
+  pets,
+  gifts,
+  electronics,
   courier,
-  billPayment,
   facture,
+  supermarket,
+  billPayment,
 }
 
 class Order {
