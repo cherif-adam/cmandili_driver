@@ -86,6 +86,11 @@ class AuthRepository {
     return out.stream;
   }
 
+  /// Y a-t-il une session utilisable maintenant. Apres une inscription, c'est
+  /// faux quand le projet exige une confirmation par email : le compte existe,
+  /// mais l'utilisateur ne peut pas encore entrer.
+  bool get hasSession => _supabase.auth.currentSession != null;
+
   // Sign in with email and password
   Future<User?> signInWithEmail(String email, String password) async {
     // GoTrue can occasionally hang indefinitely on this call (observed after
@@ -215,7 +220,13 @@ class AuthRepository {
     // stopping the service), so ordering relative to auth.signOut() doesn't
     // matter the way it does for the token deletion above.
     await BackgroundLocationService.stopTracking();
-    await _googleSignIn.signOut();
+    // La session Supabase est ce sur quoi l'app s'oriente : elle doit finir
+    // meme si la deconnexion Google echoue (utilisateur jamais passe par Google).
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('signOut: deconnexion Google echouee ($e), on continue');
+    }
     await _supabase.auth.signOut();
   }
 

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/debug/build_info.dart';
 import '../../../core/widgets/tunisia_phone_field.dart';
 import '../providers/auth_provider.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
@@ -187,6 +188,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           _nameController.text.trim(),
           TunisiaPhoneField.normalize(_phoneController),
         );
+        // Compte cree mais pas de session : le projet exige une confirmation
+        // par email. On le dit, au lieu de laisser le formulaire muet.
+        if (!authRepo.hasSession) {
+          if (mounted) {
+            _tabController.animateTo(0);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Compte créé ! Ouvrez l'email de confirmation que nous "
+                  "venons d'envoyer, puis connectez-vous.",
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 6),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // Connecte. main.dart bascule sa racine vers l'accueil tout seul ; si cet
+      // ecran de connexion a ete EMPILE par-dessus (ce que faisait l'ancienne
+      // deconnexion), on le ferme pour que l'accueil soit vraiment visible.
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
@@ -209,6 +236,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     setState(() => _isLoading = true);
     try {
       await signInMethod();
+      // Comme la connexion par email : ne jamais laisser un ecran de connexion
+      // empile par-dessus l'accueil.
+      if (mounted &&
+          ref.read(authRepositoryProvider).hasSession &&
+          Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -712,6 +746,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               ),
             ),
           ),
+
+          // Etiquette de build (mode debug uniquement) : sans elle, on ne
+          // sait pas si le telephone execute le correctif ou une vieille
+          // installation.
+          if (BuildInfo.label != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 6,
+              child: IgnorePointer(
+                child: Text(
+                  BuildInfo.label!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
