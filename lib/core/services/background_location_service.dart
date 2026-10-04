@@ -210,11 +210,9 @@ void _onStart(ServiceInstance service) async {
   // cancelled once the offer is no longer open (accepted elsewhere in the UI,
   // or rotated away by rotate_expired_offers()).
   String? activeOfferOrderId;
-  final offerSub = supabase
-      .from('orders')
-      .stream(primaryKey: ['id'])
-      .eq('assigned_driver_id', driverId)
-      .listen((rows) async {
+
+  // One handler for both sources below: the Realtime stream and the poll.
+  Future<void> handleOfferRows(List<Map<String, dynamic>> rows) async {
     Map<String, dynamic>? openOffer;
     for (final row in rows) {
       if (row['driver_id'] == null) {
@@ -264,10 +262,57 @@ void _onStart(ServiceInstance service) async {
       activeOfferOrderId = null;
       await offerLocal.cancel(_kAlarmNotifId);
     }
+  }
+
+  // Source 1: Realtime. Instant, but a dropped or refused channel
+  // (RealtimeSubscribeException / channelError) ends a Supabase stream for
+  // good. Without onError that was an unhandled error and this fallback
+  // alarm died silently for the rest of the shift.
+  StreamSubscription<List<Map<String, dynamic>>>? offerSub;
+  void subscribeOffers() {
+    offerSub?.cancel();
+    offerSub = supabase
+        .from('orders')
+        .stream(primaryKey: ['id'])
+        .eq('assigned_driver_id', driverId)
+        .listen(
+          handleOfferRows,
+          onError: (Object e) {
+            debugPrint('[BG] offer stream failed, poll continues: $e');
+            // Try the socket again later; the poll below covers the gap.
+            Timer(const Duration(seconds: 30), subscribeOffers);
+          },
+          cancelOnError: true,
+        );
+  }
+
+  subscribeOffers();
+
+  // Source 2: a plain query every few seconds. Slower than Realtime by a few
+  // seconds at worst, but it has no socket to lose, so an offer still rings
+  // when the Realtime channel is down or the FCM push never arrives.
+  var pollingOffers = false;
+  final offerPoll = Timer.periodic(const Duration(seconds: 8), (_) async {
+    if (pollingOffers) return;
+    pollingOffers = true;
+    try {
+      final rows = await supabase
+          .from('orders')
+          // Whole row, like the stream: naming columns here would make the
+          // poll fail outright if one of them is ever renamed or absent.
+          .select()
+          .eq('assigned_driver_id', driverId);
+      await handleOfferRows((rows as List).cast<Map<String, dynamic>>());
+    } catch (e) {
+      debugPrint('[BG] offer poll failed: $e'); // offline: next tick
+    } finally {
+      pollingOffers = false;
+    }
   });
 
   service.on('stop').listen((_) {
-    offerSub.cancel();
+    offerSub?.cancel();
+    offerPoll.cancel();
     offerLocal.cancel(_kAlarmNotifId);
   });
 
