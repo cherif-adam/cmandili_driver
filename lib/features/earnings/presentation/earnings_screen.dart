@@ -113,6 +113,13 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // A delivery just ended (or began): the totals and the history change at
+    // that moment, not when the driver next switches tabs. Without this they
+    // only refreshed on becoming the active tab or on pull-to-refresh.
+    ref.listen(activeDeliveryProvider, (_, __) {
+      ref.invalidate(_earningsProvider);
+      ref.invalidate(driverDeliveryHistoryProvider);
+    });
     final earningsAsync = ref.watch(_earningsProvider(_period));
     final historyAsync = ref.watch(driverDeliveryHistoryProvider);
     final l = AppLocalizations.of(context)!;

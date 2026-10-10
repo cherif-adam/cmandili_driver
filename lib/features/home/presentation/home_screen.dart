@@ -107,6 +107,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // Re-check the switch against the server every time the driver looks
       // at the app (see DriverOnlineNotifier.reconcile).
       ref.read(driverOnlineProvider.notifier).reconcile();
+      // The balance may have moved while the app was away (a delivery
+      // settled, an admin top-up). Keeps the old figure on screen while the
+      // new one loads.
+      ref.invalidate(driverWalletProvider);
       _checkForPendingOffer();
       PushService.instance.cancelParcelAlarm();
     }
