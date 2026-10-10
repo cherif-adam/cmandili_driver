@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../push/alarm_volume.dart';
 
 const _kDriverIdKey = 'bg_driver_id';
 const _kDeliveryIdKey = 'bg_delivery_id';
@@ -130,6 +131,43 @@ class BackgroundLocationService {
     await prefs.remove(_kDeliveryIdKey);
   }
 
+  /// Restarts the service if it is not running, for a driver who is online.
+  ///
+  /// Unlike [startOnlinePresence] this keeps a saved delivery id (the service
+  /// may have been killed in the middle of a delivery) and does not ask for
+  /// the "allow all the time" location permission -- it is called every time
+  /// the app comes to the front, and must stay silent.
+  static Future<void> ensureRunning({required String driverId}) async {
+    if (await _service.isRunning()) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDriverIdKey, driverId);
+    _service.startService();
+  }
+
+  /// Call when a delivery ends (delivered, cancelled, handed over).
+  ///
+  /// An ONLINE driver goes back to presence mode: the service keeps running
+  /// without a delivery id, so their position and "last seen" stay fresh and
+  /// the offer alarm keeps working for the next order. It used to be stopped
+  /// outright here while `is_online` stayed true -- the driver looked online
+  /// to dispatch with a position frozen at the customer's door.
+  /// An OFFLINE driver gets the service stopped.
+  static Future<void> endDelivery({
+    required bool stayOnline,
+    String? driverId,
+  }) async {
+    await stopTracking();
+    if (!stayOnline || driverId == null) return;
+    // The running isolate holds the finished delivery's id in memory, so it
+    // has to restart. Wait for the old one to be gone, or startService()
+    // would be a no-op on a service that is about to stop.
+    for (var i = 0; i < 15; i++) {
+      if (!await _service.isRunning()) break;
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    await startOnlinePresence(driverId: driverId);
+  }
+
   static Future<bool> get isRunning => _service.isRunning();
 }
 
@@ -227,6 +265,7 @@ void _onStart(ServiceInstance service) async {
       final body = distanceKm != null
           ? 'Acceptez dans les 30 secondes.  (${distanceKm.toStringAsFixed(1)} km)'
           : 'Acceptez dans les 30 secondes.';
+      await maxAlarmVolume();
       await offerLocal.show(
         _kAlarmNotifId,
         '🔔 Nouvelle livraison',

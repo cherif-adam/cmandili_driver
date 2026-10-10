@@ -16,6 +16,7 @@ import '../../../core/widgets/customer_contact.dart';
 import '../data/models/order.dart';
 import '../providers/order_provider.dart';
 import '../providers/driver_orders_provider.dart';
+import '../providers/driver_online_provider.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -296,6 +297,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     }
   }
 
+  /// See BackgroundLocationService.endDelivery.
+  Future<void> _endDeliveryTracking() async {
+    String? driverId;
+    try {
+      driverId = await ref.read(currentDriverIdProvider.future);
+    } catch (_) {}
+    await BackgroundLocationService.endDelivery(
+      stayOnline: ref.read(driverOnlineProvider),
+      driverId: driverId,
+    );
+  }
+
   @override
   void dispose() {
     _positionStream?.cancel();
@@ -544,7 +557,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         }
       }
 
-      await BackgroundLocationService.stopTracking();
+      await _endDeliveryTracking();
 
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(
@@ -604,8 +617,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           .eq('method', 'cash');
     } catch (_) {}
 
-    // Stop background location tracking — delivery is complete.
-    await BackgroundLocationService.stopTracking();
+    // Delivery is complete: back to plain "online" presence, or stopped if
+    // the driver is offline.
+    await _endDeliveryTracking();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

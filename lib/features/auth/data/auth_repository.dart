@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/services/background_location_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Simple User class to replace Firebase User
 class User {
@@ -220,6 +221,23 @@ class AuthRepository {
     // stopping the service), so ordering relative to auth.signOut() doesn't
     // matter the way it does for the token deletion above.
     await BackgroundLocationService.stopTracking();
+    // A signed-out driver is offline. Nothing ever told the server so: a
+    // driver who logged out with the switch on stayed is_online = true for
+    // good, and dispatch kept offering them orders (each one costing the
+    // customer the 30 s it takes to rotate to the next driver). Must run
+    // before auth.signOut(): the RLS policy needs auth.uid().
+    try {
+      final uid = _supabase.auth.currentUser?.id;
+      if (uid != null) {
+        await _supabase
+            .from('drivers')
+            .update({'is_online': false}).eq('user_id', uid);
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('driver_wants_online', false);
+    } catch (e) {
+      debugPrint('signOut: failed to set driver offline: $e');
+    }
     // La session Supabase est ce sur quoi l'app s'oriente : elle doit finir
     // meme si la deconnexion Google echoue (utilisateur jamais passe par Google).
     try {

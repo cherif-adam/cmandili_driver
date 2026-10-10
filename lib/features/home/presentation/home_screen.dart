@@ -16,6 +16,7 @@ import '../../orders/providers/driver_orders_provider.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../profile/presentation/driver_payout_screen.dart';
 import '../../earnings/presentation/earnings_screen.dart';
+import '../../../core/widgets/background_guide.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -63,6 +64,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // at the app sees the dialog appear on its own, no push and no
     // background/foreground cycle required.
     _subscribeToOfferChanges();
+    // On phones that kill background apps, tell the driver how to let the
+    // offer alarm through (once; see BackgroundGuide).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) BackgroundGuide.maybeShow(context);
+    });
   }
 
   Future<void> _subscribeToOfferChanges() async {
@@ -98,6 +104,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // Re-check the switch against the server every time the driver looks
+      // at the app (see DriverOnlineNotifier.reconcile).
+      ref.read(driverOnlineProvider.notifier).reconcile();
       _checkForPendingOffer();
       PushService.instance.cancelParcelAlarm();
     }
@@ -131,6 +140,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _onOffer(OrderOffer offer) async {
+    if (!mounted || _offerOpen) return;
+    // The driver switched themselves offline, yet the server still offered
+    // them an order (its is_online flag was stale). Do not show or ring it:
+    // pass it on at once so the customer is not kept waiting for the 30 s
+    // window to run out, and put the server's flag right.
+    if (await driverChoseOffline()) {
+      PushService.instance.cancelDeliveryAlarm();
+      try {
+        await Supabase.instance.client
+            .rpc('pass_order_offer', params: {'p_order_id': offer.orderId});
+      } catch (_) {
+        // The offer simply expires and rotates on its own.
+      }
+      if (mounted) ref.read(driverOnlineProvider.notifier).reconcile();
+      return;
+    }
     if (!mounted || _offerOpen) return;
     _offerOpen = true;
     try {

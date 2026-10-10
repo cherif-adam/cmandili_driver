@@ -10,6 +10,7 @@ import '../data/models/order.dart';
 import '../providers/driver_orders_provider.dart';
 import 'order_tracking_screen.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
+import '../providers/driver_online_provider.dart';
 
 class AvailableOrdersScreen extends ConsumerWidget {
   const AvailableOrdersScreen({super.key});
@@ -18,6 +19,9 @@ class AvailableOrdersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(availableOrdersProvider);
     final l = AppLocalizations.of(context)!;
+    // Offline means no orders: nothing to browse or accept until the driver
+    // switches on from the home screen.
+    final isOnline = ref.watch(driverOnlineProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,7 +31,33 @@ class AvailableOrdersScreen extends ConsumerWidget {
         elevation: 0,
       ),
       backgroundColor: AppColors.background,
-      body: ordersAsync.when(
+      body: !isOnline
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.power_settings_new_rounded,
+                        size: 80, color: AppColors.textLight),
+                    const SizedBox(height: 16),
+                    Text(
+                      l.youAreOffline,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 18, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l.youreOfflineFlip,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textLight),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ordersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (orders) {

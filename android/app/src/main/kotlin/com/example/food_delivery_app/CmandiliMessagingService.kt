@@ -51,6 +51,17 @@ class CmandiliMessagingService : FirebaseMessagingService() {
         // it was unhandled here, so the most common new-order alert of all
         // produced no alarm. It targets no single driver, so it reuses the
         // broadcast presentation.
+        // The driver switched themselves offline in the app (the choice
+        // DriverOnlineNotifier saves as 'driver_wants_online'; the
+        // shared_preferences plugin stores it in this file under a "flutter."
+        // prefix). The server can still offer them an order if its own
+        // is_online flag is stale -- an offline driver must not be rung for
+        // it. A missing value means no recorded choice and blocks nothing.
+        val prefs = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+        val choseOffline = prefs.contains("flutter.driver_wants_online") &&
+            !prefs.getBoolean("flutter.driver_wants_online", true)
+        if (choseOffline) return
+
         when (message.data["event"]) {
             "offer_to_driver" -> showDeliveryOffer(message.data)
             "parcel_broadcast", "driver_fanout" -> showParcelBroadcast(message.data)
@@ -140,6 +151,18 @@ class CmandiliMessagingService : FirebaseMessagingService() {
     }
 
     private fun notify(id: Int, notification: Notification) {
+        // The alarm plays on the ALARM stream, which has its own volume. On a
+        // phone where that slider was left low the offer was barely audible,
+        // so it is raised to maximum every time an offer rings. Never fatal.
+        try {
+            val audio = getSystemService(android.media.AudioManager::class.java)
+            audio.setStreamVolume(
+                android.media.AudioManager.STREAM_ALARM,
+                audio.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM),
+                0,
+            )
+        } catch (_: Exception) {
+        }
         getSystemService(NotificationManager::class.java).notify(id, notification)
     }
 

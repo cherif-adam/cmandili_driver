@@ -5,6 +5,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'alarm_volume.dart';
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
 const String _kChannelId   = 'cmandili_orders_v2';
@@ -34,7 +36,8 @@ Future<void> _showAlarmNotification(
   required int notifId,
   required String title,
   required String body,
-}) {
+}) async {
+  await maxAlarmVolume();
   return local.show(
     notifId,
     title,
@@ -79,6 +82,25 @@ Future<void> _showAlarmNotification(
   );
 }
 
+/// True only when the driver explicitly switched themselves offline (the
+/// choice saved by DriverOnlineNotifier under 'driver_wants_online').
+///
+/// The server offers orders from `drivers.is_online`. If that flag is stale
+/// (the "go offline" write was lost, the driver logged out, ...) an offer can
+/// still reach this phone; an offline driver must not be rung for it. Read
+/// from SharedPreferences rather than app state so it is right in the
+/// background isolate and in the first instant of a cold start. A missing
+/// value means "no recorded choice" and never blocks an offer.
+Future<bool> driverChoseOffline() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload(); // written by another isolate
+    return prefs.getBool('driver_wants_online') == false;
+  } catch (_) {
+    return false;
+  }
+}
+
 // ── Background handler ───────────────────────────────────────────────────────
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -88,6 +110,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // guard, so the most common alert of all returned early and never rang.
   const alarmEvents = {'offer_to_driver', 'parcel_broadcast', 'driver_fanout'};
   if (!alarmEvents.contains(event)) return;
+  if (await driverChoseOffline()) return; // offline drivers are not rung
 
   // Re-init flutter_local_notifications inside the background isolate.
   final local = FlutterLocalNotificationsPlugin();
@@ -339,13 +362,18 @@ class PushService {
         );
       }
       // Show the alarm notification even in foreground so the driver can't
-      // miss it if their phone is lying face-down.
-      _showAlarmNotification(
-        _local,
-        notifId: kDriverAlarmNotifId,
-        title: message.data['title'] as String? ?? '🔔 Nouvelle livraison !',
-        body: message.data['body'] as String? ?? 'Vous avez 15 secondes pour accepter.',
-      );
+      // miss it if their phone is lying face-down -- unless they are
+      // offline, in which case the home screen passes the offer on instead.
+      driverChoseOffline().then((offline) {
+        if (offline) return;
+        _showAlarmNotification(
+          _local,
+          notifId: kDriverAlarmNotifId,
+          title: message.data['title'] as String? ?? '🔔 Nouvelle livraison !',
+          body: message.data['body'] as String? ??
+              'Vous avez 15 secondes pour accepter.',
+        );
+      });
       return;
     }
 
@@ -355,12 +383,17 @@ class PushService {
     // already refreshes "Commandes disponibles" on its own. This just makes
     // sure the driver notices at all, the same way a food offer would.
     if (event == 'parcel_broadcast' || event == 'driver_fanout') {
-      _showAlarmNotification(
-        _local,
-        notifId: kParcelAlarmNotifId,
-        title: message.data['title'] as String? ?? '📦 Nouvelle commande disponible',
-        body: message.data['body'] as String? ?? 'Premier arrivé, premier servi.',
-      );
+      driverChoseOffline().then((offline) {
+        if (offline) return;
+        _showAlarmNotification(
+          _local,
+          notifId: kParcelAlarmNotifId,
+          title: message.data['title'] as String? ??
+              '📦 Nouvelle commande disponible',
+          body: message.data['body'] as String? ??
+              'Premier arrivé, premier servi.',
+        );
+      });
       return;
     }
 

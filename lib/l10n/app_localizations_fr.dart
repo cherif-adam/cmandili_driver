@@ -372,6 +372,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String get youAreOffline => 'Vous êtes hors ligne';
 
   @override
+  String get bgGuideTitle => 'Recevoir les commandes, application fermée';
+
+  @override
+  String get bgGuideBody =>
+      'Ce téléphone peut arrêter l\'application en arrière-plan. Pour que l\'alarme sonne même application fermée :';
+
+  @override
+  String get bgGuideStep1 =>
+      'Activez « Démarrage automatique » pour cette application.';
+
+  @override
+  String get bgGuideStep2 =>
+      'Économiseur de batterie : choisissez « Aucune restriction ».';
+
+  @override
+  String get bgGuideOpen => 'Ouvrir les réglages';
+
+  @override
+  String get bgGuideDone => 'C\'est fait';
+
+  @override
+  String get bgGuideLater => 'Plus tard';
+
+  @override
   String get canReceiveOrders => 'Vous pouvez recevoir de nouvelles commandes';
 
   @override
