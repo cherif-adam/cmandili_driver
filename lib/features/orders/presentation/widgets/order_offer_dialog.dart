@@ -88,9 +88,14 @@ String? _offerItemsSummary(Map<String, dynamic> order) {
         final foodItem = it['food_items'] as Map<String, dynamic>?;
         final groceryItem = it['grocery_items'] as Map<String, dynamic>?;
         // Flowers, pets, gifts, bakery and electronics lines live in
-        // vendor_items. They ride order_type 'food' (the orders_order_type
-        // check has no per-category value), so without this branch those
-        // orders reached the driver with a blank item summary.
+        // vendor_items, not in food_items or grocery_items — whatever the
+        // order carries as order_type. Without this branch those orders
+        // reached the driver with a blank item summary.
+        //
+        // (This comment used to say they rode order_type 'food' because the
+        // constraint had no per-category value. Migration 20260930090000 was
+        // in fact applied by hand; verified 2026-10-11. The lookup never
+        // depended on order_type anyway, which is why it kept working.)
         final vendorItem = it['vendor_items'] as Map<String, dynamic>?;
         final name = (foodItem?['name'] ??
             groceryItem?['name'] ??
