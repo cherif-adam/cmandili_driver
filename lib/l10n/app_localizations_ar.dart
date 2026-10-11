@@ -365,6 +365,61 @@ class AppLocalizationsAr extends AppLocalizations {
   String get youAreOffline => 'أنت غير متصل';
 
   @override
+  String get parcelPickupTitle => 'طرد للاستلام';
+
+  @override
+  String get parcelDeliverTitle => 'توصيل الطرد';
+
+  @override
+  String get parcelStepSender => '1. الاستلام من المرسل';
+
+  @override
+  String get parcelStepRecipient => '2. التسليم إلى المستلم';
+
+  @override
+  String get parcelSender => 'المرسل';
+
+  @override
+  String get parcelRecipient => 'المستلم';
+
+  @override
+  String get parcelCollected => 'تم استلام الطرد';
+
+  @override
+  String get parcelCollectedSnack => 'تم استلام الطرد. توجه الآن إلى المستلم.';
+
+  @override
+  String get parcelHandedOver => 'تم تسليم الطرد — إنهاء';
+
+  @override
+  String get parcelCallOnArrival => 'اتصل بالمستلم عند وصولك.';
+
+  @override
+  String get parcelActionFailed =>
+      'تعذر تحديث الطلب. تحقق من الاتصال وحاول مجدداً.';
+
+  @override
+  String get myReviews => 'تقييماتي';
+
+  @override
+  String get noReviewsYet => 'لا توجد تقييمات بعد';
+
+  @override
+  String get noReviewsYetHint => 'تظهر تقييمات الزبائن هنا بعد عمليات التوصيل.';
+
+  @override
+  String reviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تقييمات',
+      one: 'تقييم واحد',
+      zero: 'لا توجد تقييمات',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get bgGuideTitle => 'استقبال الطلبات والتطبيق مغلق';
 
   @override

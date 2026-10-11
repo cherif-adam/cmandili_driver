@@ -9,6 +9,7 @@ import 'edit_profile_screen.dart';
 import '../../notifications/presentation/notification_screen.dart';
 import 'vehicle_info_screen.dart';
 import 'driver_payout_screen.dart';
+import 'driver_reviews_screen.dart';
 import '../../auth/presentation/change_password_screen.dart';
 import 'help_support_screen.dart';
 
@@ -24,6 +25,9 @@ class ProfileScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeProvider);
     final locale = ref.watch(localizationProvider);
     final currentUser = ref.watch(authStateProvider).valueOrNull;
+    // Null until customers can rate drivers (database script not run yet):
+    // the rating line and the "My reviews" entry then simply do not appear.
+    final ratingSummary = ref.watch(driverRatingSummaryProvider).valueOrNull;
     final displayName = currentUser?.displayName ?? currentUser?.email?.split('@').first ?? '';
     final displayEmail = currentUser?.email ?? '';
     final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
@@ -73,6 +77,26 @@ class ProfileScreen extends ConsumerWidget {
                           fontSize: screenWidth * 0.035,
                         ),
                       ),
+                      if (ratingSummary != null && ratingSummary.count > 0) ...[
+                        SizedBox(height: screenHeight * 0.008),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.star_rounded,
+                                color: Color(0xFFFFC107), size: 20),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${ratingSummary.rating.toStringAsFixed(1)}  ·  '
+                              '${AppLocalizations.of(context)!.reviewsCount(ratingSummary.count)}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: screenWidth * 0.036,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -94,6 +118,24 @@ class ProfileScreen extends ConsumerWidget {
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),
+                if (ratingSummary != null)
+                  _buildProfileItem(
+                    context,
+                    icon: Icons.star_outline_rounded,
+                    title: AppLocalizations.of(context)!.myReviews,
+                    trailing: ratingSummary.count > 0
+                        ? '★ ${ratingSummary.rating.toStringAsFixed(1)}'
+                        : null,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const DriverReviewsScreen()),
+                      );
+                    },
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                  ),
                 _buildProfileItem(
                   context,
                   icon: Icons.two_wheeler_rounded,

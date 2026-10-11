@@ -372,6 +372,63 @@ class AppLocalizationsFr extends AppLocalizations {
   String get youAreOffline => 'Vous êtes hors ligne';
 
   @override
+  String get parcelPickupTitle => 'Colis à récupérer';
+
+  @override
+  String get parcelDeliverTitle => 'Livraison du colis';
+
+  @override
+  String get parcelStepSender => '1. Récupérer chez l\'expéditeur';
+
+  @override
+  String get parcelStepRecipient => '2. Livrer au destinataire';
+
+  @override
+  String get parcelSender => 'Expéditeur';
+
+  @override
+  String get parcelRecipient => 'Destinataire';
+
+  @override
+  String get parcelCollected => 'Colis récupéré';
+
+  @override
+  String get parcelCollectedSnack =>
+      'Colis récupéré. En route vers le destinataire.';
+
+  @override
+  String get parcelHandedOver => 'Colis remis — Terminer';
+
+  @override
+  String get parcelCallOnArrival => 'Appelez le destinataire à votre arrivée.';
+
+  @override
+  String get parcelActionFailed =>
+      'Mise à jour impossible. Vérifiez la connexion et réessayez.';
+
+  @override
+  String get myReviews => 'Mes avis';
+
+  @override
+  String get noReviewsYet => 'Pas encore d\'avis';
+
+  @override
+  String get noReviewsYetHint =>
+      'Les notes des clients apparaissent ici après vos livraisons.';
+
+  @override
+  String reviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count avis',
+      one: '1 avis',
+      zero: 'Aucun avis',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get bgGuideTitle => 'Recevoir les commandes, application fermée';
 
   @override

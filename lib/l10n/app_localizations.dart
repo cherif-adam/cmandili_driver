@@ -796,6 +796,96 @@ abstract class AppLocalizations {
   /// **'You are Offline'**
   String get youAreOffline;
 
+  /// No description provided for @parcelPickupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel to collect'**
+  String get parcelPickupTitle;
+
+  /// No description provided for @parcelDeliverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivering the parcel'**
+  String get parcelDeliverTitle;
+
+  /// No description provided for @parcelStepSender.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Collect from the sender'**
+  String get parcelStepSender;
+
+  /// No description provided for @parcelStepRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Deliver to the recipient'**
+  String get parcelStepRecipient;
+
+  /// No description provided for @parcelSender.
+  ///
+  /// In en, this message translates to:
+  /// **'Sender'**
+  String get parcelSender;
+
+  /// No description provided for @parcelRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient'**
+  String get parcelRecipient;
+
+  /// No description provided for @parcelCollected.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel collected'**
+  String get parcelCollected;
+
+  /// No description provided for @parcelCollectedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel collected. Now head to the recipient.'**
+  String get parcelCollectedSnack;
+
+  /// No description provided for @parcelHandedOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel handed over — Finish'**
+  String get parcelHandedOver;
+
+  /// No description provided for @parcelCallOnArrival.
+  ///
+  /// In en, this message translates to:
+  /// **'Call the recipient when you arrive.'**
+  String get parcelCallOnArrival;
+
+  /// No description provided for @parcelActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update the order. Check your connection and try again.'**
+  String get parcelActionFailed;
+
+  /// No description provided for @myReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'My reviews'**
+  String get myReviews;
+
+  /// No description provided for @noReviewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet'**
+  String get noReviewsYet;
+
+  /// No description provided for @noReviewsYetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer ratings appear here after your deliveries.'**
+  String get noReviewsYetHint;
+
+  /// No description provided for @reviewsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No reviews} =1{1 review} other{{count} reviews}}'**
+  String reviewsCount(int count);
+
   /// No description provided for @bgGuideTitle.
   ///
   /// In en, this message translates to:

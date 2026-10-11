@@ -13,6 +13,7 @@ import '../../../core/services/background_location_service.dart';
 import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
 import '../../../core/widgets/customer_contact.dart';
+import '../data/models/delivery_address.dart';
 import '../data/models/order.dart';
 import '../providers/order_provider.dart';
 import '../providers/driver_orders_provider.dart';
@@ -410,6 +411,40 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     }
   }
 
+  /// Parcel in hand, driver leaving for the recipient: one tap.
+  ///
+  /// A shop order has two moments (picked up, then leaving) because the
+  /// driver may wait at the counter. With a parcel the sender hands it over
+  /// and the driver goes, so the order moves directly to "on the way": the
+  /// map re-routes to the recipient and the sender gets one notification
+  /// instead of two a second apart. Nothing on the server depends on the
+  /// intermediate "picked up" status.
+  Future<void> _parcelCollected() async {
+    final l = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _supabase
+          .from('orders')
+          .update({'status': 'onTheWay'}).eq('id', widget.orderId);
+      if (_activeDeliveryId != null) {
+        await _supabase
+            .from('deliveries')
+            .update({'status': 'onTheWay'}).eq('id', _activeDeliveryId!);
+      }
+    } catch (e) {
+      debugPrint('parcelCollected failed: $e');
+      messenger.showSnackBar(SnackBar(
+        content: Text(l.parcelActionFailed),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+    messenger.showSnackBar(SnackBar(
+      content: Text(l.parcelCollectedSnack),
+      backgroundColor: Colors.blue,
+    ));
+  }
+
   static const _releaseReasons = [
     'Panne / accident',
     'Problème de véhicule',
@@ -674,12 +709,23 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     // supermarket orders don't — their pickup point is the restaurant/
     // supermarket, resolved separately via _fetchPickupLocation since the
     // order row only has the id, not coordinates.
-    final double? pickupLat = isFacture ? order.pickupAddress?.latitude : _pickupLat;
-    final double? pickupLng = isFacture ? order.pickupAddress?.longitude : _pickupLng;
-    final String pickupTitle = isFacture ? 'Chez le client' : (_pickupName ?? 'Point de retrait');
+    // A parcel (person to person) has no shop either: its pickup point is
+    // the sender, on the order row like a facture's. It used to fall into
+    // the shop lookup below, find nothing, and leave the driver with no
+    // pickup pin and a route straight to the RECIPIENT -- the wrong person
+    // to visit first.
+    final isCourier = order.type == OrderType.courier;
+    final usesOwnPickup = isFacture || isCourier;
+    final double? pickupLat = usesOwnPickup ? order.pickupAddress?.latitude : _pickupLat;
+    final double? pickupLng = usesOwnPickup ? order.pickupAddress?.longitude : _pickupLng;
+    final String pickupTitle = isFacture
+        ? 'Chez le client'
+        : isCourier
+            ? l.parcelSender
+            : (_pickupName ?? 'Point de retrait');
     final hasPickup = pickupLat != null && pickupLng != null;
 
-    if (!isFacture) {
+    if (!usesOwnPickup) {
       // Fire-and-forget; the setState inside repaints once resolved.
       _fetchPickupLocation(order);
     }
@@ -768,7 +814,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 latitude: deliveryLat,
                 longitude: deliveryLng,
                 kind: AppMapMarkerKind.delivery,
-                title: isFacture ? 'Bureau de paiement' : l.deliveryLocation,
+                title: isFacture
+                    ? 'Bureau de paiement'
+                    : isCourier
+                        ? l.parcelRecipient
+                        : l.deliveryLocation,
               ),
               if (hasPickup)
                 AppMapMarker(
@@ -886,7 +936,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     const SizedBox(height: 20),
 
                     Text(
-                      isFacture ? 'Paiement de facture' : l.deliveringOrder,
+                      isFacture
+                          ? 'Paiement de facture'
+                          : isCourier
+                              ? (beforePickup
+                                  ? l.parcelPickupTitle
+                                  : l.parcelDeliverTitle)
+                              : l.deliveringOrder,
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
@@ -902,6 +958,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       const SizedBox(height: 12),
                     ],
 
+                    // ── Parcel: sender first, then recipient ────────────────
+                    if (isCourier) ...[
+                      _ParcelPanel(order: order, collected: !beforePickup),
+                      const SizedBox(height: 12),
+                    ] else ...[
                     // ── Standard delivery address (bill office for facture) ─
                     _AddressCard(
                       icon: isFacture ? Icons.business_outlined : Icons.location_on,
@@ -931,6 +992,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                             'commande #${order.id.substring(0, 6).toUpperCase()}.',
                       ),
                       const SizedBox(height: 12),
+                    ],
                     ],
 
                     // Payment info row
@@ -975,10 +1037,20 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         order.status != OrderStatus.onTheWay &&
                         order.status != OrderStatus.delivered)
                       _ActionButton(
-                        label: isFacture ? 'Espèces collectées' : l.markPickedUp,
-                        icon: isFacture ? Icons.payments_rounded : Icons.shopping_bag_outlined,
+                        label: isFacture
+                            ? 'Espèces collectées'
+                            : isCourier
+                                ? l.parcelCollected
+                                : l.markPickedUp,
+                        icon: isFacture
+                            ? Icons.payments_rounded
+                            : isCourier
+                                ? Icons.inventory_2_rounded
+                                : Icons.shopping_bag_outlined,
                         color: Colors.orange,
-                        onPressed: _markPickedUp,
+                        // A parcel goes straight on its way: there is nothing
+                        // to wait for between taking it and leaving with it.
+                        onPressed: isCourier ? _parcelCollected : _markPickedUp,
                       ),
 
                     // "Head to bill office" / "Start delivery" button
@@ -1013,7 +1085,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     // Non-facture: standard confirm delivery button
                     if (!isFacture && order.status == OrderStatus.onTheWay)
                       _ActionButton(
-                        label: l.confirmDelivery,
+                        label: isCourier ? l.parcelHandedOver : l.confirmDelivery,
                         icon: Icons.check_circle_outline,
                         color: AppColors.success,
                         onPressed: _confirmDelivery,
@@ -1475,3 +1547,184 @@ class _Row extends StatelessWidget {
     );
   }
 }
+
+/// The two stops of a parcel, in the order the driver makes them: the
+/// sender, who hands the parcel over, then the recipient. The stop the driver
+/// is heading to is the open one -- its address, and the person to call
+/// there. The other stays as a one-line reminder.
+///
+/// Replaces the single "delivery address + customer" block of a shop order,
+/// which for a parcel showed only the recipient's address next to the phone
+/// number of whoever placed the order.
+class _ParcelPanel extends StatelessWidget {
+  final Order order;
+
+  /// True once the driver has the parcel and is on the way to the recipient.
+  final bool collected;
+
+  const _ParcelPanel({required this.order, required this.collected});
+
+  String _address(DeliveryAddress? a) {
+    if (a == null) return '';
+    return a.fullAddress.isNotEmpty ? a.fullAddress : a.label;
+  }
+
+  String? _phone(List<String?> candidates) {
+    for (final p in candidates) {
+      if (p != null && p.trim().isNotEmpty) return p.trim();
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final ref = '#${order.id.substring(0, 6).toUpperCase()}';
+    // The sender is whoever placed the order; they may have typed another
+    // number to be reached on for this parcel.
+    final senderPhone = _phone([order.senderPhone, order.customerPhone]);
+    final recipientPhone = _phone([order.recipientPhone]);
+    final senderName = order.customerName;
+    final recipientName = order.recipientName;
+
+    return Column(
+      children: [
+        _stop(
+          context,
+          active: !collected,
+          done: collected,
+          title: l.parcelStepSender,
+          address: _address(order.pickupAddress),
+          contact: senderPhone == null
+              ? null
+              : CustomerContact(
+                  phone: senderPhone,
+                  label: senderName?.isNotEmpty == true
+                      ? '${l.parcelSender} — $senderName'
+                      : l.parcelSender,
+                  whatsappMessage:
+                      'Bonjour, je suis votre livreur Amana, je viens '
+                      'récupérer le colis $ref.',
+                ),
+        ),
+        const SizedBox(height: 10),
+        _stop(
+          context,
+          active: collected,
+          done: false,
+          title: l.parcelStepRecipient,
+          address: _address(order.deliveryAddress),
+          hint: collected && recipientPhone != null ? l.parcelCallOnArrival : null,
+          contact: recipientPhone == null
+              ? null
+              : CustomerContact(
+                  phone: recipientPhone,
+                  label: recipientName?.isNotEmpty == true
+                      ? '${l.parcelRecipient} — $recipientName'
+                      : l.parcelRecipient,
+                  whatsappMessage:
+                      'Bonjour, je suis votre livreur Amana, je vous '
+                      'apporte le colis $ref.',
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _stop(
+    BuildContext context, {
+    required bool active,
+    required bool done,
+    required String title,
+    required String address,
+    Widget? contact,
+    String? hint,
+  }) {
+    final color = done
+        ? AppColors.success
+        : active
+            ? AppColors.primary
+            : AppColors.textLight;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: active ? color.withValues(alpha: 0.06) : AppColors.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: active ? 0.5 : 0.25),
+          width: active ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                done
+                    ? Icons.check_circle_rounded
+                    : active
+                        ? Icons.location_on_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                color: color,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                    color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (address.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: 28),
+              child: Text(
+                address,
+                style: TextStyle(
+                  color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                  fontSize: 13.5,
+                ),
+              ),
+            ),
+          ],
+          // Only the stop the driver is heading to gets the call buttons:
+          // one clear person to ring, not two.
+          if (active && hint != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.phone_in_talk_rounded,
+                    size: 16, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    hint,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (active && contact != null) ...[
+            const SizedBox(height: 10),
+            contact,
+          ],
+        ],
+      ),
+    );
+  }
+}
+

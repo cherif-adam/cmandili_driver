@@ -366,6 +366,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youAreOffline => 'You are Offline';
 
   @override
+  String get parcelPickupTitle => 'Parcel to collect';
+
+  @override
+  String get parcelDeliverTitle => 'Delivering the parcel';
+
+  @override
+  String get parcelStepSender => '1. Collect from the sender';
+
+  @override
+  String get parcelStepRecipient => '2. Deliver to the recipient';
+
+  @override
+  String get parcelSender => 'Sender';
+
+  @override
+  String get parcelRecipient => 'Recipient';
+
+  @override
+  String get parcelCollected => 'Parcel collected';
+
+  @override
+  String get parcelCollectedSnack =>
+      'Parcel collected. Now head to the recipient.';
+
+  @override
+  String get parcelHandedOver => 'Parcel handed over — Finish';
+
+  @override
+  String get parcelCallOnArrival => 'Call the recipient when you arrive.';
+
+  @override
+  String get parcelActionFailed =>
+      'Could not update the order. Check your connection and try again.';
+
+  @override
+  String get myReviews => 'My reviews';
+
+  @override
+  String get noReviewsYet => 'No reviews yet';
+
+  @override
+  String get noReviewsYetHint =>
+      'Customer ratings appear here after your deliveries.';
+
+  @override
+  String reviewsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+      zero: 'No reviews',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get bgGuideTitle => 'Get orders with the app closed';
 
   @override
