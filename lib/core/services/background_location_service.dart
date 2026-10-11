@@ -447,10 +447,21 @@ void _onStart(ServiceInstance service) async {
   // pour ne rien couter en batterie (aucun fix GPS n'est demande, on reutilise
   // la derniere position que le systeme a deja).
   Timer? heartbeat;
-  heartbeat = Timer.periodic(const Duration(minutes: 4), (_) async {
+  // Every 2 minutes (was 4), and it now reports even when the phone has no
+  // stored position: the timestamp alone is what says "this driver's phone
+  // is alive". With no position the old heartbeat wrote nothing at all, the
+  // driver looked silent, and a server that switches silent drivers offline
+  // (drivers_auto_offline_stale) took them out of the pool.
+  heartbeat = Timer.periodic(const Duration(minutes: 2), (_) async {
     try {
       final last = await Geolocator.getLastKnownPosition();
-      if (last != null) await pushLocation(last);
+      if (last != null) {
+        await pushLocation(last);
+      } else {
+        await supabase.from('drivers').update({
+          'last_location_update': DateTime.now().toUtc().toIso8601String(),
+        }).eq('id', driverId);
+      }
     } catch (e) {
       debugPrint('[BG] heartbeat failed: $e');
     }
