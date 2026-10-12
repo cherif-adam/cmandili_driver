@@ -13,11 +13,20 @@ import '../../../core/services/background_location_service.dart';
 import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
 import '../../../core/widgets/customer_contact.dart';
+import '../data/colis_proof_repository.dart';
 import '../data/models/delivery_address.dart';
 import '../data/models/order.dart';
+import 'widgets/colis_proof_sheets.dart';
 import '../providers/order_provider.dart';
 import '../providers/driver_orders_provider.dart';
 import '../providers/driver_online_provider.dart';
+
+/// Issue de l'étape de preuve Colis.
+///   notApplicable : ce n'est pas un colis (ou la migration du bon de prise
+///                   en charge n'est pas encore passée) — flux historique.
+///   done          : la preuve est enregistrée, la RPC a déjà livré.
+///   aborted       : le livreur a annulé, ou le serveur a refusé.
+enum _ColisStep { notApplicable, done, aborted }
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -390,7 +399,48 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
+  // ── Preuves Colis ─────────────────────────────────────────────────────────
+  // Un reçu n'existe que pour les commandes courier : loadReceipt renvoie null
+  // partout ailleurs, et le flux food/épicerie n'est pas touché. Il renvoie
+  // null aussi quand la migration n'a pas encore été appliquée, pour qu'un
+  // build neuf reste utilisable sur une base pas encore à jour.
+
+  late final ColisProofRepository _colisRepo = ColisProofRepository(_supabase);
+
+  /// true quand on peut continuer : pas un colis, preuve déjà faite, ou preuve
+  /// enregistrée à l'instant.
+  Future<bool> _recordColisPickupIfNeeded() async {
+    final receipt = await _colisRepo.loadReceipt(widget.orderId);
+    if (receipt == null) return true;
+    if (receipt['pickup_at'] != null) return true;
+    if (!mounted) return false;
+    return showColisPickupSheet(
+      context: context,
+      repo: _colisRepo,
+      orderId: widget.orderId,
+      receipt: receipt,
+    );
+  }
+
+  Future<_ColisStep> _deliverColisIfNeeded() async {
+    final receipt = await _colisRepo.loadReceipt(widget.orderId);
+    if (receipt == null) return _ColisStep.notApplicable;
+    if (!mounted) return _ColisStep.aborted;
+    final ok = await showColisDeliverySheet(
+      context: context,
+      repo: _colisRepo,
+      orderId: widget.orderId,
+      receipt: receipt,
+    );
+    return ok ? _ColisStep.done : _ColisStep.aborted;
+  }
+
   Future<void> _markPickedUp() async {
+    // Colis : la prise en charge se prouve avant de partir. Si la preuve n'est
+    // pas enregistrée (annulation, photo refusée, erreur serveur), on ne
+    // change pas le statut — sinon le colis serait en route sans aucune trace.
+    if (!await _recordColisPickupIfNeeded()) return;
+
     await _supabase
         .from('orders')
         .update({'status': 'pickedUp'}).eq('id', widget.orderId);
@@ -420,6 +470,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   /// instead of two a second apart. Nothing on the server depends on the
   /// intermediate "picked up" status.
   Future<void> _parcelCollected() async {
+    // C'EST ICI que passe la prise en charge d'un colis, pas par
+    // _markPickedUp : un colis saute l'étape 'pickedUp' et file directement
+    // en 'onTheWay'. Sans cet appel, la preuve n'était jamais demandée pour
+    // les seules commandes qu'elle doit protéger.
+    if (!await _recordColisPickupIfNeeded()) return;
+    if (!mounted) return;
+
     final l = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -633,9 +690,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   }
 
   Future<void> _confirmDelivery() async {
-    await _supabase
-        .from('orders')
-        .update({'status': 'delivered'}).eq('id', widget.orderId);
+    // Colis : code (ou remise au tiers désigné) + photo. La RPC passe
+    // elle-même la commande à 'delivered', donc on saute l'UPDATE direct —
+    // le refaire ici ne ferait que relancer inutilement le trigger de
+    // règlement.
+    final colisDone = await _deliverColisIfNeeded();
+    if (colisDone == _ColisStep.aborted) return;
+
+    if (colisDone == _ColisStep.notApplicable) {
+      await _supabase
+          .from('orders')
+          .update({'status': 'delivered'}).eq('id', widget.orderId);
+    }
 
     if (_activeDeliveryId != null) {
       await _supabase
