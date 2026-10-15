@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +13,7 @@ import '../../orders/presentation/available_orders_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
 import '../../orders/presentation/widgets/order_offer_dialog.dart';
 import '../../orders/providers/driver_online_provider.dart';
+import '../../orders/providers/driver_verification_provider.dart';
 import '../../orders/providers/driver_orders_provider.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../profile/presentation/driver_payout_screen.dart';
@@ -468,6 +470,14 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final availableAsync = ref.watch(availableOrdersProvider);
 
     final isOnline = ref.watch(driverOnlineProvider);
+    // Optimiste pendant le chargement et en cas d'erreur : le serveur
+    // refuse de toute facon, et bloquer un livreur legitime derriere un
+    // ecran d'attente coute plus cher qu'un interrupteur affiche a tort.
+    final isVerified =
+        ref.watch(driverIsVerifiedProvider).maybeWhen(
+              data: (v) => v,
+              orElse: () => true,
+            );
     final availableCount = availableAsync.value?.length ?? 0;
     final hasActive = activeAsync.value != null;
     final hasLocation = _myLat != null && _myLng != null;
@@ -511,6 +521,15 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                             ),
                             _OnlineStatusPill(isOnline: isOnline),
                             const SizedBox(width: 8),
+                            // Compte non vérifié : un cadenas, pas un
+                            // interrupteur. Le vrai refus est côté serveur
+                            // (garde-fou de colonnes sur `drivers`) ; ceci
+                            // évite seulement au livreur de buter sur une
+                            // erreur sans comprendre pourquoi.
+                            if (!isVerified)
+                              const Icon(Icons.lock_outline_rounded,
+                                  color: Colors.white70, size: 22)
+                            else
                             Switch.adaptive(
                               value: isOnline,
                               activeColor: Colors.white,
@@ -551,6 +570,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 14),
                         ),
+                        if (!isVerified) const _VerificationPendingNotice(),
                         if (_cityName != null) ...[
                           const SizedBox(height: 6),
                           Row(
@@ -990,6 +1010,78 @@ class _FullscreenMapScreenState extends State<_FullscreenMapScreen> {
               icon: Icons.my_location,
               onTap: _recenter,
               tooltip: 'Recenter',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bandeau affiché quand le dossier du livreur est incomplet.
+///
+/// Volontairement sobre et non culpabilisant : il manque des papiers, ce n'est
+/// pas une sanction. Le bouton ouvre le téléphone sur le numéro d'Amana — un
+/// livreur bloqué doit pouvoir joindre quelqu'un tout de suite, pas chercher.
+class _VerificationPendingNotice extends StatelessWidget {
+  const _VerificationPendingNotice();
+
+  static const _amanaPhone = '+21624697855';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.verified_user_outlined,
+                  color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Compte en attente de vérification',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Merci de fournir votre CIN et votre contrat signé et légalisé '
+            "à l'équipe Amana. Vous pourrez ensuite passer en ligne et "
+            'recevoir des courses.',
+            style: TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final uri = Uri(scheme: 'tel', path: _amanaPhone);
+                if (await canLaunchUrl(uri)) await launchUrl(uri);
+              },
+              icon: const Icon(Icons.phone_rounded, size: 16),
+              label: const Text("Contacter l'équipe Amana",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black87,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
             ),
           ),
         ],
