@@ -181,7 +181,7 @@ class PushService {
   // Bridges native killed-app offer notification taps (order_id intent extra)
   // from MainActivity into Dart.
   static const _notifChannel =
-      MethodChannel('com.cmandili.driver/notifications');
+      MethodChannel('com.amana.driver/notifications');
 
   // Holds a cold-start offer (from a killed-app notification tap) that arrived
   // before the home screen subscribed to offerStream. Replayed on subscribe so

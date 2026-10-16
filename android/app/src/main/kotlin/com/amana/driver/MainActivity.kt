@@ -1,4 +1,4 @@
-package com.cmandili.driver
+package com.amana.driver
 
 import android.content.Intent
 import android.os.Bundle
@@ -22,7 +22,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     companion object {
-        private const val CHANNEL = "com.cmandili.driver/notifications"
+        private const val CHANNEL = "com.amana.driver/notifications"
     }
 
     private var channel: MethodChannel? = null

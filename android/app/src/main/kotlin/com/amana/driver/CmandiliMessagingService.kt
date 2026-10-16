@@ -1,4 +1,4 @@
-package com.cmandili.driver
+package com.amana.driver
 
 import android.app.Notification
 import android.app.NotificationManager
