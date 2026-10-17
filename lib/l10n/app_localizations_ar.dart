@@ -558,4 +558,32 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get orders => 'الطلبات';
+
+  @override
+  String get deleteAccount => 'حذف حسابي';
+
+  @override
+  String get deleteAccountTitle => 'حذف حسابك؟';
+
+  @override
+  String get deleteAccountBody =>
+      'سيتم حذف ملفك الشخصي ومعلومات مركبتك ورصيدك وإشعاراتك نهائياً. إذا لم يكن رصيدك المسبق الدفع صفراً، تواصل مع الدعم أولاً: أي رصيد متبقٍّ سيضيع.\n\nتُحفظ عمليات التوصيل التي قمت بها للمحاسبة، دون أي ربط بك.\n\nلا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get deleteAccountConfirm => 'حذف';
+
+  @override
+  String get deleteAccountDone => 'تم حذف حسابك.';
+
+  @override
+  String get deleteAccountActiveDelivery =>
+      'لديك عملية توصيل قيد التنفيذ. أنهِها قبل حذف حسابك.';
+
+  @override
+  String get deleteAccountNegativeBalance =>
+      'رصيدك سالب. تواصل مع الدعم لتسويته قبل حذف حسابك.';
+
+  @override
+  String get deleteAccountFailed =>
+      'تعذّر حذف حسابك. حاول مجدداً أو تواصل مع الدعم.';
 }

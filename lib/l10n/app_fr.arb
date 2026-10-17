@@ -175,5 +175,13 @@
     "noActiveDelivery": "Aucune livraison active",
     "acceptOrderToStart": "Acceptez une commande pour commencer à livrer",
     "browseAvailableOrders": "Parcourir les commandes disponibles",
-    "orders": "Commandes"
+    "orders": "Commandes",
+    "deleteAccount": "Supprimer mon compte",
+    "deleteAccountTitle": "Supprimer votre compte ?",
+    "deleteAccountBody": "Votre profil, les informations de votre véhicule, votre solde et vos notifications seront supprimés définitivement. Si votre solde prépayé n'est pas à zéro, contactez le support avant : un solde restant est perdu.\n\nLes livraisons déjà effectuées sont conservées pour la comptabilité, sans lien avec vous.\n\nCette action est irréversible.",
+    "deleteAccountConfirm": "Supprimer",
+    "deleteAccountDone": "Votre compte a été supprimé.",
+    "deleteAccountActiveDelivery": "Vous avez une livraison en cours. Terminez-la avant de supprimer votre compte.",
+    "deleteAccountNegativeBalance": "Votre solde est négatif. Contactez le support pour le régler avant de supprimer votre compte.",
+    "deleteAccountFailed": "Impossible de supprimer votre compte. Réessayez ou contactez le support."
 }

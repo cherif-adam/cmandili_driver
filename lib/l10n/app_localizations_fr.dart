@@ -574,4 +574,32 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get orders => 'Commandes';
+
+  @override
+  String get deleteAccount => 'Supprimer mon compte';
+
+  @override
+  String get deleteAccountTitle => 'Supprimer votre compte ?';
+
+  @override
+  String get deleteAccountBody =>
+      'Votre profil, les informations de votre véhicule, votre solde et vos notifications seront supprimés définitivement. Si votre solde prépayé n\'est pas à zéro, contactez le support avant : un solde restant est perdu.\n\nLes livraisons déjà effectuées sont conservées pour la comptabilité, sans lien avec vous.\n\nCette action est irréversible.';
+
+  @override
+  String get deleteAccountConfirm => 'Supprimer';
+
+  @override
+  String get deleteAccountDone => 'Votre compte a été supprimé.';
+
+  @override
+  String get deleteAccountActiveDelivery =>
+      'Vous avez une livraison en cours. Terminez-la avant de supprimer votre compte.';
+
+  @override
+  String get deleteAccountNegativeBalance =>
+      'Votre solde est négatif. Contactez le support pour le régler avant de supprimer votre compte.';
+
+  @override
+  String get deleteAccountFailed =>
+      'Impossible de supprimer votre compte. Réessayez ou contactez le support.';
 }

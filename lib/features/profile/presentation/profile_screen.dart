@@ -12,6 +12,7 @@ import 'driver_payout_screen.dart';
 import 'driver_reviews_screen.dart';
 import '../../auth/presentation/change_password_screen.dart';
 import 'help_support_screen.dart';
+import 'delete_account_flow.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -227,6 +228,17 @@ class ProfileScreen extends ConsumerWidget {
                   // attempt had no widget left watching authStateProvider —
                   // the session updated but nothing was there to react to it.
                   onTap: () => ref.read(authRepositoryProvider).signOut(),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                _buildProfileItem(
+                  context,
+                  icon: Icons.delete_forever_outlined,
+                  title: AppLocalizations.of(context)!.deleteAccount,
+                  textColor: AppColors.textSecondary,
+                  iconColor: AppColors.textSecondary,
+                  showArrow: false,
+                  onTap: () => deleteDriverAccount(context, ref),
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),

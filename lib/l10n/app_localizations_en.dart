@@ -563,4 +563,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orders => 'Orders';
+
+  @override
+  String get deleteAccount => 'Delete my account';
+
+  @override
+  String get deleteAccountTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountBody =>
+      'Your profile, vehicle details, balance and notifications will be permanently deleted. If your prepaid balance is not zero, contact support first: any remaining balance is lost.\n\nDeliveries you already made are kept for accounting, no longer linked to you.\n\nThis cannot be undone.';
+
+  @override
+  String get deleteAccountConfirm => 'Delete';
+
+  @override
+  String get deleteAccountDone => 'Your account has been deleted.';
+
+  @override
+  String get deleteAccountActiveDelivery =>
+      'You have a delivery in progress. Finish it before deleting your account.';
+
+  @override
+  String get deleteAccountNegativeBalance =>
+      'Your balance is negative. Contact support to settle it before deleting your account.';
+
+  @override
+  String get deleteAccountFailed =>
+      'Your account could not be deleted. Please try again or contact support.';
 }

@@ -175,5 +175,13 @@
     "noActiveDelivery": "لا يوجد توصيل نشط",
     "acceptOrderToStart": "اقبل طلباً لبدء التوصيل",
     "browseAvailableOrders": "تصفح الطلبات المتاحة",
-    "orders": "الطلبات"
+    "orders": "الطلبات",
+    "deleteAccount": "حذف حسابي",
+    "deleteAccountTitle": "حذف حسابك؟",
+    "deleteAccountBody": "سيتم حذف ملفك الشخصي ومعلومات مركبتك ورصيدك وإشعاراتك نهائياً. إذا لم يكن رصيدك المسبق الدفع صفراً، تواصل مع الدعم أولاً: أي رصيد متبقٍّ سيضيع.\n\nتُحفظ عمليات التوصيل التي قمت بها للمحاسبة، دون أي ربط بك.\n\nلا يمكن التراجع عن هذا الإجراء.",
+    "deleteAccountConfirm": "حذف",
+    "deleteAccountDone": "تم حذف حسابك.",
+    "deleteAccountActiveDelivery": "لديك عملية توصيل قيد التنفيذ. أنهِها قبل حذف حسابك.",
+    "deleteAccountNegativeBalance": "رصيدك سالب. تواصل مع الدعم لتسويته قبل حذف حسابك.",
+    "deleteAccountFailed": "تعذّر حذف حسابك. حاول مجدداً أو تواصل مع الدعم."
 }

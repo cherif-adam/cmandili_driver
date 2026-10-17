@@ -1161,6 +1161,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Orders'**
   String get orders;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile, vehicle details, balance and notifications will be permanently deleted. If your prepaid balance is not zero, contact support first: any remaining balance is lost.\n\nDeliveries you already made are kept for accounting, no longer linked to you.\n\nThis cannot be undone.'**
+  String get deleteAccountBody;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted.'**
+  String get deleteAccountDone;
+
+  /// No description provided for @deleteAccountActiveDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a delivery in progress. Finish it before deleting your account.'**
+  String get deleteAccountActiveDelivery;
+
+  /// No description provided for @deleteAccountNegativeBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Your balance is negative. Contact support to settle it before deleting your account.'**
+  String get deleteAccountNegativeBalance;
+
+  /// No description provided for @deleteAccountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account could not be deleted. Please try again or contact support.'**
+  String get deleteAccountFailed;
 }
 
 class _AppLocalizationsDelegate

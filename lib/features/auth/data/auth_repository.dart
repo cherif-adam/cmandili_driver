@@ -354,4 +354,56 @@ class AuthRepository {
       return false;
     }
   }
+
+  /// Supprime definitivement le compte du livreur connecte (exige par
+  /// Google Play), puis le deconnecte.
+  ///
+  /// `delete_my_account()` refuse pendant une course en cours ou avec un
+  /// solde negatif (migration 20261018090000_delete_my_account_drivers.sql).
+  /// Une fois le compte supprime, [signOut] arrete le suivi GPS et ferme la
+  /// session ; ses appels au serveur echouent sans bruit (le compte n'existe
+  /// plus), ce qui est attendu.
+  Future<void> deleteAccount() async {
+    if (_supabase.auth.currentUser == null) {
+      throw const AccountDeletionException(AccountDeletionError.failed);
+    }
+    try {
+      await _supabase.rpc('delete_my_account');
+    } on supabase.PostgrestException catch (e) {
+      debugPrint('deleteAccount: ${e.code} ${e.message}');
+      final m = e.message;
+      throw AccountDeletionException(
+        m.contains('active_delivery') || m.contains('active_order')
+            ? AccountDeletionError.activeDelivery
+            : m.contains('negative_balance')
+                ? AccountDeletionError.negativeBalance
+                : AccountDeletionError.failed,
+      );
+    } catch (e) {
+      debugPrint('deleteAccount: $e');
+      throw const AccountDeletionException(AccountDeletionError.failed);
+    }
+    await signOut();
+  }
+}
+
+/// Pourquoi la suppression du compte n'a pas eu lieu.
+enum AccountDeletionError {
+  /// Une course (ou une commande) n'est ni livree ni annulee.
+  activeDelivery,
+
+  /// Le solde prepaye est negatif : le livreur doit encore de l'argent.
+  negativeBalance,
+
+  /// Reseau, base, ou migration pas encore appliquee.
+  failed,
+}
+
+class AccountDeletionException implements Exception {
+  final AccountDeletionError error;
+
+  const AccountDeletionException(this.error);
+
+  @override
+  String toString() => 'AccountDeletionException($error)';
 }
