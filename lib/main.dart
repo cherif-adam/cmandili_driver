@@ -6,7 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/home/presentation/home_screen.dart';
-import 'features/profile/presentation/vehicle_info_screen.dart';
+import 'features/profile/presentation/vehicle_info/vehicle_info_screen.dart';
 import 'core/services/background_location_service.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
