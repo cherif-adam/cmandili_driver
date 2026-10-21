@@ -13,6 +13,7 @@ import '../driver_reviews/driver_reviews_screen.dart';
 import '../../providers/driver_reviews_provider.dart';
 import '../../../auth/presentation/change_password/change_password_screen.dart';
 import '../help_support/help_support_screen.dart';
+import '../../../account_deletion/presentation/delete_account/delete_account_screen.dart';
 import 'profile_controller.dart';
 import 'widgets/language_sheet.dart';
 import 'widgets/profile_item.dart';
@@ -150,6 +151,19 @@ class ProfileScreen extends ConsumerWidget {
                   // attempt had no widget left watching authStateProvider —
                   // the session updated but nothing was there to react to it.
                   onTap: () => controller.signOut(),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                // Séparé du reste : c'est la seule action définitive de l'écran.
+                SizedBox(height: screenHeight * 0.03),
+                Divider(color: AppColors.error.withValues(alpha: 0.3)),
+                SizedBox(height: screenHeight * 0.02),
+                ProfileItem(
+                  icon: Icons.delete_forever_rounded,
+                  title: l.deleteAccount,
+                  textColor: AppColors.error,
+                  iconColor: AppColors.error,
+                  onTap: () => open(const DeleteAccountScreen()),
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),
