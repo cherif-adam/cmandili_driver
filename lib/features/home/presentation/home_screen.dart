@@ -17,7 +17,7 @@ import '../../orders/providers/driver_verification_provider.dart';
 import '../../orders/providers/driver_orders_provider.dart';
 import '../../profile/presentation/profile/profile_screen.dart';
 import '../../profile/presentation/driver_payout_screen.dart';
-import '../../earnings/presentation/earnings_screen.dart';
+import '../../earnings/presentation/earnings/earnings_screen.dart';
 import '../../../core/widgets/background_guide.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
