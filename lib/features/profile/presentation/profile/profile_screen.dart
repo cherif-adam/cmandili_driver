@@ -8,7 +8,7 @@ import '../../../../core/providers/theme_provider.dart';
 import '../edit_profile/edit_profile_screen.dart';
 import '../../../notifications/presentation/notification/notification_screen.dart';
 import '../vehicle_info/vehicle_info_screen.dart';
-import '../driver_payout_screen.dart';
+import '../driver_payout/driver_payout_screen.dart';
 import '../driver_reviews/driver_reviews_screen.dart';
 import '../../providers/driver_reviews_provider.dart';
 import '../../../auth/presentation/change_password/change_password_screen.dart';
