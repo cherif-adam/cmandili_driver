@@ -11,7 +11,7 @@ import 'vehicle_info_screen.dart';
 import 'driver_payout_screen.dart';
 import 'driver_reviews_screen.dart';
 import '../../auth/presentation/change_password_screen.dart';
-import 'help_support_screen.dart';
+import 'help_support/help_support_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
