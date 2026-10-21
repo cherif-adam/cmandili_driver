@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
-import 'features/auth/presentation/auth_screen.dart';
+import 'features/auth/presentation/auth/auth_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/profile/presentation/vehicle_info/vehicle_info_screen.dart';
 import 'core/services/background_location_service.dart';
