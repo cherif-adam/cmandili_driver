@@ -1,73 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../orders/providers/driver_orders_provider.dart';
-
-/// The driver's average rating and how many customers have rated them.
-///
-/// Kept on the driver's own row (drivers.rating / drivers.review_count) by a
-/// database trigger each time a customer rates a delivery. Null when ratings
-/// are not available yet -- the columns only exist once the database script
-/// 20261011120000_receipt_confirmation_and_driver_ratings.sql has been run --
-/// so the profile simply shows nothing until then.
-final driverRatingSummaryProvider =
-    FutureProvider.autoDispose<({double rating, int count})?>((ref) async {
-  final userId = Supabase.instance.client.auth.currentUser?.id;
-  if (userId == null) return null;
-  try {
-    final row = await Supabase.instance.client
-        .from('drivers')
-        .select('rating, review_count')
-        .eq('user_id', userId)
-        .maybeSingle();
-    if (row == null) return null;
-    return (
-      rating: (row['rating'] as num?)?.toDouble() ?? 0,
-      count: (row['review_count'] as num?)?.toInt() ?? 0,
-    );
-  } catch (_) {
-    return null;
-  }
-});
-
-/// One customer's rating of a delivery. No customer name: the driver sees
-/// what was said, not who said it.
-class DriverReview {
-  final int rating;
-  final String? comment;
-  final DateTime createdAt;
-
-  const DriverReview({
-    required this.rating,
-    required this.comment,
-    required this.createdAt,
-  });
-}
-
-/// The ratings this driver has received, newest first.
-final driverReviewsProvider =
-    FutureProvider.autoDispose<List<DriverReview>>((ref) async {
-  final driverId = await ref.watch(currentDriverIdProvider.future);
-  if (driverId == null) return const [];
-  final rows = await Supabase.instance.client
-      .from('driver_ratings')
-      .select('rating, comment, created_at')
-      .eq('driver_id', driverId)
-      .order('created_at', ascending: false)
-      .limit(100);
-  return [
-    for (final r in (rows as List).cast<Map<String, dynamic>>())
-      DriverReview(
-        rating: (r['rating'] as num?)?.toInt() ?? 0,
-        comment: (r['comment'] as String?)?.trim(),
-        createdAt:
-            DateTime.tryParse('${r['created_at']}')?.toLocal() ?? DateTime.now(),
-      ),
-  ];
-});
+import '../../../../core/theme/app_colors.dart';
+import '../../data/driver_reviews_repository.dart';
+import '../../providers/driver_reviews_provider.dart';
+import 'driver_reviews_controller.dart';
+import 'widgets/review_stars.dart';
 
 /// "My reviews": the average on top, then each rating with its comment.
 class DriverReviewsScreen extends ConsumerWidget {
@@ -76,6 +15,7 @@ class DriverReviewsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
+    final controller = ref.watch(driverReviewsControllerProvider.notifier);
     final summary = ref.watch(driverRatingSummaryProvider).valueOrNull;
     final reviewsAsync = ref.watch(driverReviewsProvider);
 
@@ -89,23 +29,20 @@ class DriverReviewsScreen extends ConsumerWidget {
       ),
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(driverRatingSummaryProvider);
-          ref.invalidate(driverReviewsProvider);
-        },
+        onRefresh: () async => controller.refresh(),
         child: reviewsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           // Also the state before the database script has been run.
-          error: (_, __) => _empty(l),
+          error: (_, __) => const _ReviewsEmpty(),
           data: (reviews) {
-            if (reviews.isEmpty) return _empty(l);
+            if (reviews.isEmpty) return const _ReviewsEmpty();
             return ListView.separated(
               padding: const EdgeInsets.all(20),
               itemCount: reviews.length + 1,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
-                if (i == 0) return _summaryCard(l, summary, reviews.length);
-                return _reviewTile(context, reviews[i - 1]);
+                if (i == 0) return _SummaryCard(summary: summary, loaded: reviews.length);
+                return _ReviewTile(review: reviews[i - 1]);
               },
             );
           },
@@ -113,8 +50,16 @@ class DriverReviewsScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _empty(AppLocalizations l) {
+// ── Sections, in screen order ────────────────────────────────────────────────
+
+class _ReviewsEmpty extends StatelessWidget {
+  const _ReviewsEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     // A ListView so pull-to-refresh still works on the empty state.
     return ListView(
       padding: const EdgeInsets.all(32),
@@ -137,12 +82,17 @@ class DriverReviewsScreen extends ConsumerWidget {
       ],
     );
   }
+}
 
-  Widget _summaryCard(
-    AppLocalizations l,
-    ({double rating, int count})? summary,
-    int loaded,
-  ) {
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.summary, required this.loaded});
+
+  final ({double rating, int count})? summary;
+  final int loaded;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final rating = summary?.rating ?? 0;
     final count = summary?.count ?? loaded;
     return Container(
@@ -166,7 +116,7 @@ class DriverReviewsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _stars(rating.round(), size: 22, empty: Colors.white38),
+                ReviewStars(rating.round(), size: 22, empty: Colors.white38),
                 const SizedBox(height: 4),
                 Text(
                   l.reviewsCount(count),
@@ -179,8 +129,15 @@ class DriverReviewsScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _reviewTile(BuildContext context, DriverReview review) {
+class _ReviewTile extends StatelessWidget {
+  const _ReviewTile({required this.review});
+
+  final DriverReview review;
+
+  @override
+  Widget build(BuildContext context) {
     String two(int n) => n.toString().padLeft(2, '0');
     final d = review.createdAt;
     final date = '${two(d.day)}/${two(d.month)}/${d.year}';
@@ -203,7 +160,7 @@ class DriverReviewsScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
-              _stars(review.rating, size: 18, empty: AppColors.textLight),
+              ReviewStars(review.rating, size: 18, empty: AppColors.textLight),
               const Spacer(),
               Text(
                 date,
@@ -218,20 +175,6 @@ class DriverReviewsScreen extends ConsumerWidget {
           ],
         ],
       ),
-    );
-  }
-
-  Widget _stars(int filled, {required double size, required Color empty}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < 5; i++)
-          Icon(
-            i < filled ? Icons.star_rounded : Icons.star_border_rounded,
-            size: size,
-            color: i < filled ? const Color(0xFFFFC107) : empty,
-          ),
-      ],
     );
   }
 }
