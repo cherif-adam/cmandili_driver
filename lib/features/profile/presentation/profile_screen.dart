@@ -5,7 +5,7 @@ import '../../auth/providers/auth_provider.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
 import '../../../core/providers/localization_provider.dart';
 import '../../../core/providers/theme_provider.dart';
-import 'edit_profile_screen.dart';
+import 'edit_profile/edit_profile_screen.dart';
 import '../../notifications/presentation/notification_screen.dart';
 import 'vehicle_info/vehicle_info_screen.dart';
 import 'driver_payout_screen.dart';
