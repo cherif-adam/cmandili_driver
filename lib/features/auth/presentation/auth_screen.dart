@@ -8,7 +8,7 @@ import '../../../core/widgets/tunisia_phone_field.dart';
 import '../providers/auth_provider.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
 import '../../../core/providers/localization_provider.dart';
-import 'forgot_password_screen.dart';
+import 'forgot_password/forgot_password_screen.dart';
 
 /// Maps a raw auth exception (e.g. the Supabase client's
 /// `AuthApiException(message: Invalid login credentials, statusCode: 400,
