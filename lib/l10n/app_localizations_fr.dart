@@ -727,7 +727,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deleteAccountKeptIdentity =>
-      'Votre dossier d\'identité et votre contrat, visibles uniquement par l\'équipe Amana';
+      'Votre dossier d\'identité et votre contrat, visibles uniquement par l\'équipe Amana, 5 ans après votre dernière livraison, puis ils sont effacés';
 
   @override
   String get deleteAccountDoneBody =>

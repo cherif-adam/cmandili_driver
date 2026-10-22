@@ -147,6 +147,7 @@ void main() {
       expect(find.textContaining('Votre véhicule et vos positions GPS'), findsOneWidget);
       expect(find.textContaining('30 jours après votre dernière livraison'), findsOneWidget);
       expect(find.textContaining('sans vos positions'), findsOneWidget);
+      expect(find.textContaining('5 ans après votre dernière livraison'), findsOneWidget);
     });
   });
 }

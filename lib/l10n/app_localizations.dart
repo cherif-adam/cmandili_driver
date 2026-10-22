@@ -1399,7 +1399,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccountKeptIdentity.
   ///
   /// In en, this message translates to:
-  /// **'Your identity file and contract, visible only to the Amana team'**
+  /// **'Your identity file and contract, visible only to the Amana team, for 5 years after your last delivery, then they are erased'**
   String get deleteAccountKeptIdentity;
 
   /// No description provided for @deleteAccountDoneBody.

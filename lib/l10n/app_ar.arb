@@ -215,7 +215,7 @@
     "deleteAccountDriverOffline": "ستتم إزالتك من قائمة السائقين: لن تُعرض عليك أي توصيلات بعد الآن",
     "deleteAccountKeptDeliveries": "سجل توصيلاتك لأغراض المحاسبة: التواريخ والحالة والمبالغ، دون مواقعك",
     "deleteAccountKeptMoney": "أرباحك والتسويات وسجل رصيدك",
-    "deleteAccountKeptIdentity": "ملف هويتك وعقدك، ولا يطلع عليهما إلا فريق أمانة",
+    "deleteAccountKeptIdentity": "ملف هويتك وعقدك، ولا يطلع عليهما إلا فريق أمانة، لمدة 5 سنوات بعد آخر توصيل، ثم يُحذفان",
     "deleteAccountDoneBody": "تم حذف حسابك. شكراً لعملك مع أمانة.",
     "deleteAccountDeletedVehicle": "مركبتك ومواقع GPS الخاصة بك",
     "deleteAccountKeptColisDriver": "اسمك ولوحة مركبتك وبطاقة هويتك على إيصالات الطرود المسلَّمة، لمدة 30 يوماً بعد آخر توصيل، ثم تُحذف"

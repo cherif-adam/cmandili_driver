@@ -705,7 +705,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteAccountKeptIdentity =>
-      'ملف هويتك وعقدك، ولا يطلع عليهما إلا فريق أمانة';
+      'ملف هويتك وعقدك، ولا يطلع عليهما إلا فريق أمانة، لمدة 5 سنوات بعد آخر توصيل، ثم يُحذفان';
 
   @override
   String get deleteAccountDoneBody => 'تم حذف حسابك. شكراً لعملك مع أمانة.';
