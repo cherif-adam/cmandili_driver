@@ -707,7 +707,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccountKeptDeliveries =>
-      'Your delivery history and the parcel handover receipts';
+      'Your delivery history, for accounting: dates, status and amounts, without your positions';
 
   @override
   String get deleteAccountKeptMoney =>
@@ -720,4 +720,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountDoneBody =>
       'Your account has been deleted. Thank you for working with Amana.';
+
+  @override
+  String get deleteAccountDeletedVehicle =>
+      'Your vehicle and your GPS positions';
+
+  @override
+  String get deleteAccountKeptColisDriver =>
+      'Your name, plate and ID on the receipts of delivered parcels, for 30 days after your last delivery, then they are erased';
 }

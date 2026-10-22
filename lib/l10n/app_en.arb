@@ -221,8 +221,10 @@
     "deleteAccountDeletedContact": "Your contact details: name, phone, email and photo",
     "deleteAccountDeletedBank": "Your bank details",
     "deleteAccountDriverOffline": "You will be removed from the drivers: no more deliveries will be offered to you",
-    "deleteAccountKeptDeliveries": "Your delivery history and the parcel handover receipts",
+    "deleteAccountKeptDeliveries": "Your delivery history, for accounting: dates, status and amounts, without your positions",
     "deleteAccountKeptMoney": "Your earnings, settlements and balance history",
     "deleteAccountKeptIdentity": "Your identity file and contract, visible only to the Amana team",
-    "deleteAccountDoneBody": "Your account has been deleted. Thank you for working with Amana."
+    "deleteAccountDoneBody": "Your account has been deleted. Thank you for working with Amana.",
+    "deleteAccountDeletedVehicle": "Your vehicle and your GPS positions",
+    "deleteAccountKeptColisDriver": "Your name, plate and ID on the receipts of delivered parcels, for 30 days after your last delivery, then they are erased"
 }

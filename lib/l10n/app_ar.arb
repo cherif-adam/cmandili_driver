@@ -213,8 +213,10 @@
     "deleteAccountDeletedContact": "بياناتك الشخصية: الاسم والهاتف والبريد الإلكتروني والصورة",
     "deleteAccountDeletedBank": "بياناتك البنكية",
     "deleteAccountDriverOffline": "ستتم إزالتك من قائمة السائقين: لن تُعرض عليك أي توصيلات بعد الآن",
-    "deleteAccountKeptDeliveries": "سجل توصيلاتك وإيصالات استلام الطرود",
+    "deleteAccountKeptDeliveries": "سجل توصيلاتك لأغراض المحاسبة: التواريخ والحالة والمبالغ، دون مواقعك",
     "deleteAccountKeptMoney": "أرباحك والتسويات وسجل رصيدك",
     "deleteAccountKeptIdentity": "ملف هويتك وعقدك، ولا يطلع عليهما إلا فريق أمانة",
-    "deleteAccountDoneBody": "تم حذف حسابك. شكراً لعملك مع أمانة."
+    "deleteAccountDoneBody": "تم حذف حسابك. شكراً لعملك مع أمانة.",
+    "deleteAccountDeletedVehicle": "مركبتك ومواقع GPS الخاصة بك",
+    "deleteAccountKeptColisDriver": "اسمك ولوحة مركبتك وبطاقة هويتك على إيصالات الطرود المسلَّمة، لمدة 30 يوماً بعد آخر توصيل، ثم تُحذف"
 }

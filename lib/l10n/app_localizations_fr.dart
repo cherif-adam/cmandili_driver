@@ -719,7 +719,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deleteAccountKeptDeliveries =>
-      'L\'historique de vos livraisons et les bons de prise en charge des colis';
+      'L\'historique de vos livraisons, pour la comptabilité : dates, statut et montants, sans vos positions';
 
   @override
   String get deleteAccountKeptMoney =>
@@ -732,4 +732,12 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get deleteAccountDoneBody =>
       'Votre compte a été supprimé. Merci d\'avoir travaillé avec Amana.';
+
+  @override
+  String get deleteAccountDeletedVehicle =>
+      'Votre véhicule et vos positions GPS';
+
+  @override
+  String get deleteAccountKeptColisDriver =>
+      'Votre nom, votre plaque et votre CIN sur les bons des colis livrés, 30 jours après votre dernière livraison, puis ils sont effacés';
 }

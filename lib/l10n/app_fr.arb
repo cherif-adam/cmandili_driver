@@ -213,8 +213,10 @@
     "deleteAccountDeletedContact": "Vos coordonnées : nom, téléphone, email et photo",
     "deleteAccountDeletedBank": "Vos coordonnées bancaires",
     "deleteAccountDriverOffline": "Vous serez retiré des livreurs : plus aucune course ne vous sera proposée",
-    "deleteAccountKeptDeliveries": "L'historique de vos livraisons et les bons de prise en charge des colis",
+    "deleteAccountKeptDeliveries": "L'historique de vos livraisons, pour la comptabilité : dates, statut et montants, sans vos positions",
     "deleteAccountKeptMoney": "Vos gains, les règlements et l'historique de votre solde",
     "deleteAccountKeptIdentity": "Votre dossier d'identité et votre contrat, visibles uniquement par l'équipe Amana",
-    "deleteAccountDoneBody": "Votre compte a été supprimé. Merci d'avoir travaillé avec Amana."
+    "deleteAccountDoneBody": "Votre compte a été supprimé. Merci d'avoir travaillé avec Amana.",
+    "deleteAccountDeletedVehicle": "Votre véhicule et vos positions GPS",
+    "deleteAccountKeptColisDriver": "Votre nom, votre plaque et votre CIN sur les bons des colis livrés, 30 jours après votre dernière livraison, puis ils sont effacés"
 }

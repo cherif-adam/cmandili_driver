@@ -698,7 +698,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteAccountKeptDeliveries =>
-      'سجل توصيلاتك وإيصالات استلام الطرود';
+      'سجل توصيلاتك لأغراض المحاسبة: التواريخ والحالة والمبالغ، دون مواقعك';
 
   @override
   String get deleteAccountKeptMoney => 'أرباحك والتسويات وسجل رصيدك';
@@ -709,4 +709,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteAccountDoneBody => 'تم حذف حسابك. شكراً لعملك مع أمانة.';
+
+  @override
+  String get deleteAccountDeletedVehicle => 'مركبتك ومواقع GPS الخاصة بك';
+
+  @override
+  String get deleteAccountKeptColisDriver =>
+      'اسمك ولوحة مركبتك وبطاقة هويتك على إيصالات الطرود المسلَّمة، لمدة 30 يوماً بعد آخر توصيل، ثم تُحذف';
 }

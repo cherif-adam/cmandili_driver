@@ -1387,7 +1387,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccountKeptDeliveries.
   ///
   /// In en, this message translates to:
-  /// **'Your delivery history and the parcel handover receipts'**
+  /// **'Your delivery history, for accounting: dates, status and amounts, without your positions'**
   String get deleteAccountKeptDeliveries;
 
   /// No description provided for @deleteAccountKeptMoney.
@@ -1407,6 +1407,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your account has been deleted. Thank you for working with Amana.'**
   String get deleteAccountDoneBody;
+
+  /// No description provided for @deleteAccountDeletedVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your vehicle and your GPS positions'**
+  String get deleteAccountDeletedVehicle;
+
+  /// No description provided for @deleteAccountKeptColisDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name, plate and ID on the receipts of delivered parcels, for 30 days after your last delivery, then they are erased'**
+  String get deleteAccountKeptColisDriver;
 }
 
 class _AppLocalizationsDelegate
