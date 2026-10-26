@@ -716,4 +716,64 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deleteAccountKeptColisDriver =>
       'اسمك ولوحة مركبتك وبطاقة هويتك على إيصالات الطرود المسلَّمة، لمدة 30 يوماً بعد آخر توصيل، ثم تُحذف';
+
+  @override
+  String get myContract => 'عقدي';
+
+  @override
+  String get contractNone => 'لا يوجد عقد بعد. سيرسله لك فريق أمانة هنا.';
+
+  @override
+  String get contractStatusSent =>
+      'عقدك جاهز. وقّعه، وصادق على إمضائك في البلدية، ثم أرسل صورة له.';
+
+  @override
+  String get contractStatusSubmitted =>
+      'تم إرسال الصورة. فريق أمانة يراجع عقدك.';
+
+  @override
+  String get contractStatusApproved => 'تمت الموافقة على عقدك.';
+
+  @override
+  String get contractStatusRejected => 'تم رفض عقدك. أرسل صورة جديدة من فضلك.';
+
+  @override
+  String get contractReason => 'السبب:';
+
+  @override
+  String get contractStep1 => 'نزّل العقد.';
+
+  @override
+  String get contractStep2 => 'اطبعه ووقّعه.';
+
+  @override
+  String get contractStep3 => 'صادق على إمضائك في البلدية.';
+
+  @override
+  String get contractStep4 =>
+      'التقط صورة واضحة للعقد الموقّع والمختوم ثم أرسلها.';
+
+  @override
+  String get contractDownload => 'تنزيل العقد';
+
+  @override
+  String get contractSendPhoto => 'إرسال صورة العقد الموقّع';
+
+  @override
+  String get contractResendPhoto => 'إرسال صورة أخرى';
+
+  @override
+  String get contractTakePhoto => 'التقاط صورة';
+
+  @override
+  String get contractChooseGallery => 'اختيار من المعرض';
+
+  @override
+  String get contractSent => 'تم إرسال الصورة إلى فريق أمانة.';
+
+  @override
+  String get contractSendFailed => 'تعذّر إرسال الصورة. حاول مجدداً.';
+
+  @override
+  String get contractDownloadFailed => 'تعذّر فتح العقد. حاول مجدداً.';
 }

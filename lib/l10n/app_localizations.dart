@@ -1419,6 +1419,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your name, plate and ID on the receipts of delivered parcels, for 30 days after your last delivery, then they are erased'**
   String get deleteAccountKeptColisDriver;
+
+  /// No description provided for @myContract.
+  ///
+  /// In en, this message translates to:
+  /// **'My contract'**
+  String get myContract;
+
+  /// No description provided for @contractNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No contract yet. The Amana team will send it to you here.'**
+  String get contractNone;
+
+  /// No description provided for @contractStatusSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your contract is ready. Sign it, have your signature legalized at the municipality (baladiya), then send a photo of it.'**
+  String get contractStatusSent;
+
+  /// No description provided for @contractStatusSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo sent. The Amana team is checking your contract.'**
+  String get contractStatusSubmitted;
+
+  /// No description provided for @contractStatusApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your contract is approved.'**
+  String get contractStatusApproved;
+
+  /// No description provided for @contractStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Your contract was refused. Please send a new photo.'**
+  String get contractStatusRejected;
+
+  /// No description provided for @contractReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason:'**
+  String get contractReason;
+
+  /// No description provided for @contractStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the contract.'**
+  String get contractStep1;
+
+  /// No description provided for @contractStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'Print it and sign it.'**
+  String get contractStep2;
+
+  /// No description provided for @contractStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'Have your signature legalized at the municipality (baladiya).'**
+  String get contractStep3;
+
+  /// No description provided for @contractStep4.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a clear photo of the signed and stamped contract and send it.'**
+  String get contractStep4;
+
+  /// No description provided for @contractDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the contract'**
+  String get contractDownload;
+
+  /// No description provided for @contractSendPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the photo of the signed contract'**
+  String get contractSendPhoto;
+
+  /// No description provided for @contractResendPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Send another photo'**
+  String get contractResendPhoto;
+
+  /// No description provided for @contractTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get contractTakePhoto;
+
+  /// No description provided for @contractChooseGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get contractChooseGallery;
+
+  /// No description provided for @contractSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo sent to the Amana team.'**
+  String get contractSent;
+
+  /// No description provided for @contractSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo couldn\'t be sent. Try again.'**
+  String get contractSendFailed;
+
+  /// No description provided for @contractDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The contract couldn\'t be opened. Try again.'**
+  String get contractDownloadFailed;
 }
 
 class _AppLocalizationsDelegate

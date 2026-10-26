@@ -740,4 +740,68 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get deleteAccountKeptColisDriver =>
       'Votre nom, votre plaque et votre CIN sur les bons des colis livrés, 30 jours après votre dernière livraison, puis ils sont effacés';
+
+  @override
+  String get myContract => 'Mon contrat';
+
+  @override
+  String get contractNone =>
+      'Aucun contrat pour l\'instant. L\'équipe Amana vous l\'enverra ici.';
+
+  @override
+  String get contractStatusSent =>
+      'Votre contrat est prêt. Signez-le, faites légaliser votre signature à la baladiya, puis envoyez-en une photo.';
+
+  @override
+  String get contractStatusSubmitted =>
+      'Photo envoyée. L\'équipe Amana vérifie votre contrat.';
+
+  @override
+  String get contractStatusApproved => 'Votre contrat est validé.';
+
+  @override
+  String get contractStatusRejected =>
+      'Votre contrat a été refusé. Envoyez une nouvelle photo.';
+
+  @override
+  String get contractReason => 'Motif :';
+
+  @override
+  String get contractStep1 => 'Téléchargez le contrat.';
+
+  @override
+  String get contractStep2 => 'Imprimez-le et signez-le.';
+
+  @override
+  String get contractStep3 => 'Faites légaliser votre signature à la baladiya.';
+
+  @override
+  String get contractStep4 =>
+      'Prenez une photo nette du contrat signé et tamponné, puis envoyez-la.';
+
+  @override
+  String get contractDownload => 'Télécharger le contrat';
+
+  @override
+  String get contractSendPhoto => 'Envoyer la photo du contrat signé';
+
+  @override
+  String get contractResendPhoto => 'Renvoyer une autre photo';
+
+  @override
+  String get contractTakePhoto => 'Prendre une photo';
+
+  @override
+  String get contractChooseGallery => 'Choisir dans la galerie';
+
+  @override
+  String get contractSent => 'Photo envoyée à l\'équipe Amana.';
+
+  @override
+  String get contractSendFailed =>
+      'La photo n\'a pas pu être envoyée. Réessayez.';
+
+  @override
+  String get contractDownloadFailed =>
+      'Le contrat n\'a pas pu être ouvert. Réessayez.';
 }

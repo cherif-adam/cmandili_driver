@@ -728,4 +728,68 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountKeptColisDriver =>
       'Your name, plate and ID on the receipts of delivered parcels, for 30 days after your last delivery, then they are erased';
+
+  @override
+  String get myContract => 'My contract';
+
+  @override
+  String get contractNone =>
+      'No contract yet. The Amana team will send it to you here.';
+
+  @override
+  String get contractStatusSent =>
+      'Your contract is ready. Sign it, have your signature legalized at the municipality (baladiya), then send a photo of it.';
+
+  @override
+  String get contractStatusSubmitted =>
+      'Photo sent. The Amana team is checking your contract.';
+
+  @override
+  String get contractStatusApproved => 'Your contract is approved.';
+
+  @override
+  String get contractStatusRejected =>
+      'Your contract was refused. Please send a new photo.';
+
+  @override
+  String get contractReason => 'Reason:';
+
+  @override
+  String get contractStep1 => 'Download the contract.';
+
+  @override
+  String get contractStep2 => 'Print it and sign it.';
+
+  @override
+  String get contractStep3 =>
+      'Have your signature legalized at the municipality (baladiya).';
+
+  @override
+  String get contractStep4 =>
+      'Take a clear photo of the signed and stamped contract and send it.';
+
+  @override
+  String get contractDownload => 'Download the contract';
+
+  @override
+  String get contractSendPhoto => 'Send the photo of the signed contract';
+
+  @override
+  String get contractResendPhoto => 'Send another photo';
+
+  @override
+  String get contractTakePhoto => 'Take a photo';
+
+  @override
+  String get contractChooseGallery => 'Choose from gallery';
+
+  @override
+  String get contractSent => 'Photo sent to the Amana team.';
+
+  @override
+  String get contractSendFailed => 'The photo couldn\'t be sent. Try again.';
+
+  @override
+  String get contractDownloadFailed =>
+      'The contract couldn\'t be opened. Try again.';
 }

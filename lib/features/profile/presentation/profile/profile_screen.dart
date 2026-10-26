@@ -8,6 +8,7 @@ import '../../../../core/providers/theme_provider.dart';
 import '../edit_profile/edit_profile_screen.dart';
 import '../../../notifications/presentation/notification/notification_screen.dart';
 import '../vehicle_info/vehicle_info_screen.dart';
+import '../my_contract/my_contract_screen.dart';
 import '../driver_payout/driver_payout_screen.dart';
 import '../driver_reviews/driver_reviews_screen.dart';
 import '../../providers/driver_reviews_provider.dart';
@@ -80,6 +81,13 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.two_wheeler_rounded,
                   title: l.vehicleInfo,
                   onTap: () => open(const VehicleInfoScreen()),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                ProfileItem(
+                  icon: Icons.description_outlined,
+                  title: l.myContract,
+                  onTap: () => open(const MyContractScreen()),
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),

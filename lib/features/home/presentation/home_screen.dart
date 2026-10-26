@@ -19,6 +19,7 @@ import '../../profile/presentation/profile/profile_screen.dart';
 import '../../profile/providers/driver_wallet_provider.dart';
 import '../../earnings/presentation/earnings/earnings_screen.dart';
 import '../../../core/widgets/background_guide.dart';
+import '../../profile/presentation/my_contract/my_contract_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -1059,12 +1060,33 @@ class _VerificationPendingNotice extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Merci de fournir votre CIN et votre contrat signé et légalisé '
-            "à l'équipe Amana. Vous pourrez ensuite passer en ligne et "
-            'recevoir des courses.',
+            "Ouvrez « Mon contrat » : téléchargez votre contrat, signez-le, "
+            'faites légaliser la signature à la baladiya et renvoyez-en la '
+            "photo. L'équipe Amana a aussi besoin de votre CIN. Vous pourrez "
+            'ensuite passer en ligne et recevoir des courses.',
             style: TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4),
           ),
           const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyContractScreen()),
+              ),
+              icon: const Icon(Icons.description_outlined, size: 16),
+              label: const Text('Mon contrat',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black87,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             height: 38,
