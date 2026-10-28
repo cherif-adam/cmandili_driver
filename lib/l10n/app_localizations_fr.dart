@@ -804,4 +804,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get contractDownloadFailed =>
       'Le contrat n\'a pas pu être ouvert. Réessayez.';
+
+  @override
+  String get locationDisclosureTitle => 'Votre position pendant le service';
+
+  @override
+  String get locationDisclosureIntro =>
+      'Amana utilise la position précise de votre téléphone quand vous êtes en ligne, y compris lorsque l\'application est fermée ou en arrière-plan :';
+
+  @override
+  String get locationDisclosureUseOffers =>
+      'pour vous proposer les commandes proches de vous ;';
+
+  @override
+  String get locationDisclosureUseTracking =>
+      'pour montrer votre trajet au client et au commerçant pendant une livraison ;';
+
+  @override
+  String get locationDisclosureUseProof =>
+      'pour enregistrer le lieu de remise des colis.';
+
+  @override
+  String get locationDisclosureStop =>
+      'Le suivi s\'arrête dès que vous passez hors ligne. Une notification reste affichée tant qu\'il est actif. Vous pouvez retirer l\'accès à tout moment dans les paramètres du téléphone.';
+
+  @override
+  String get locationDisclosureContinue => 'Continuer';
+
+  @override
+  String get locationDisclosureNotNow => 'Pas maintenant';
+
+  @override
+  String get locationDisclosureDeclined =>
+      'Sans la localisation, vous ne pouvez pas recevoir de commandes. Vous pourrez l\'activer en passant en ligne.';
 }

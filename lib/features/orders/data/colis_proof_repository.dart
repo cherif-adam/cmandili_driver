@@ -19,6 +19,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/permissions/location_disclosure.dart';
+
 /// Version envoyée au serveur à chaque étape, pour mesurer l'adoption du
 /// nouveau flux pendant le déploiement souple. Une constante et non
 /// package_info_plus : seules les versions qui appellent ces RPC comptent,
@@ -70,10 +72,7 @@ class ColisProofRepository {
   /// pas de preuve du tout, et le serveur enregistre l'absence telle quelle.
   Future<Position?> currentPosition() async {
     try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
+      final perm = await LocationDisclosure.requestIfAccepted();
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
         return null;

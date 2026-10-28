@@ -245,5 +245,14 @@
     "contractChooseGallery": "Choose from gallery",
     "contractSent": "Photo sent to the Amana team.",
     "contractSendFailed": "The photo couldn't be sent. Try again.",
-    "contractDownloadFailed": "The contract couldn't be opened. Try again."
+    "contractDownloadFailed": "The contract couldn't be opened. Try again.",
+    "locationDisclosureTitle": "Your location while you work",
+    "locationDisclosureIntro": "Amana uses your phone's precise location while you are online, including when the app is closed or in the background:",
+    "locationDisclosureUseOffers": "to offer you orders near you;",
+    "locationDisclosureUseTracking": "to show your route to the customer and the shop during a delivery;",
+    "locationDisclosureUseProof": "to record where parcels are handed over.",
+    "locationDisclosureStop": "Tracking stops as soon as you go offline. A notification stays visible while it is active. You can remove access at any time in your phone settings.",
+    "locationDisclosureContinue": "Continue",
+    "locationDisclosureNotNow": "Not now",
+    "locationDisclosureDeclined": "Without location you can't receive orders. You can turn it on when you go online."
 }

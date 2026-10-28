@@ -776,4 +776,35 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get contractDownloadFailed => 'تعذّر فتح العقد. حاول مجدداً.';
+
+  @override
+  String get locationDisclosureTitle => 'موقعك أثناء العمل';
+
+  @override
+  String get locationDisclosureIntro =>
+      'يستخدم أمانة الموقع الدقيق لهاتفك عندما تكون متصلاً، حتى عندما يكون التطبيق مغلقاً أو في الخلفية:';
+
+  @override
+  String get locationDisclosureUseOffers => 'لنقترح عليك الطلبات القريبة منك؛';
+
+  @override
+  String get locationDisclosureUseTracking =>
+      'لنُظهر مسارك للزبون وللتاجر أثناء التوصيل؛';
+
+  @override
+  String get locationDisclosureUseProof => 'لنسجّل مكان تسليم الطرود.';
+
+  @override
+  String get locationDisclosureStop =>
+      'يتوقف التتبّع بمجرد أن تصبح غير متصل. يبقى إشعار ظاهراً طوال مدة التتبّع. يمكنك سحب الإذن في أي وقت من إعدادات الهاتف.';
+
+  @override
+  String get locationDisclosureContinue => 'متابعة';
+
+  @override
+  String get locationDisclosureNotNow => 'ليس الآن';
+
+  @override
+  String get locationDisclosureDeclined =>
+      'بدون الموقع لا يمكنك استلام الطلبات. يمكنك تفعيله عندما تصبح متصلاً.';
 }

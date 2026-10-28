@@ -1,9 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Location permissions for foreground and background GPS tracking -->
+    <!-- Location: "while using the app" only. The GPS runs in a foreground
+         service of type location started from the open app, which keeps
+         receiving positions in the background without
+         ACCESS_BACKGROUND_LOCATION (test/location_permissions_test.dart). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <!-- Required for the foreground service that keeps GPS alive when backgrounded -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />

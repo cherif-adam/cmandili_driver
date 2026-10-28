@@ -1533,6 +1533,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The contract couldn\'t be opened. Try again.'**
   String get contractDownloadFailed;
+
+  /// No description provided for @locationDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location while you work'**
+  String get locationDisclosureTitle;
+
+  /// No description provided for @locationDisclosureIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Amana uses your phone\'s precise location while you are online, including when the app is closed or in the background:'**
+  String get locationDisclosureIntro;
+
+  /// No description provided for @locationDisclosureUseOffers.
+  ///
+  /// In en, this message translates to:
+  /// **'to offer you orders near you;'**
+  String get locationDisclosureUseOffers;
+
+  /// No description provided for @locationDisclosureUseTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'to show your route to the customer and the shop during a delivery;'**
+  String get locationDisclosureUseTracking;
+
+  /// No description provided for @locationDisclosureUseProof.
+  ///
+  /// In en, this message translates to:
+  /// **'to record where parcels are handed over.'**
+  String get locationDisclosureUseProof;
+
+  /// No description provided for @locationDisclosureStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking stops as soon as you go offline. A notification stays visible while it is active. You can remove access at any time in your phone settings.'**
+  String get locationDisclosureStop;
+
+  /// No description provided for @locationDisclosureContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get locationDisclosureContinue;
+
+  /// No description provided for @locationDisclosureNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get locationDisclosureNotNow;
+
+  /// No description provided for @locationDisclosureDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Without location you can\'t receive orders. You can turn it on when you go online.'**
+  String get locationDisclosureDeclined;
 }
 
 class _AppLocalizationsDelegate

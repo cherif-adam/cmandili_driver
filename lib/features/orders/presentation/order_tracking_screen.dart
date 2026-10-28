@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
+import '../../../core/permissions/location_disclosure.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/services/background_location_service.dart';
@@ -105,10 +106,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   /// so the route is fetched immediately instead of waiting on the stream.
   Future<void> _seedInitialPosition() async {
     try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
+      final permission = await LocationDisclosure.requestIfAccepted();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         return;
@@ -169,10 +167,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   }
 
   Future<void> _startLocationTracking() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+    final permission = await LocationDisclosure.requestIfAccepted();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       return;

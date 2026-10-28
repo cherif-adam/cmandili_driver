@@ -237,5 +237,14 @@
     "contractChooseGallery": "اختيار من المعرض",
     "contractSent": "تم إرسال الصورة إلى فريق أمانة.",
     "contractSendFailed": "تعذّر إرسال الصورة. حاول مجدداً.",
-    "contractDownloadFailed": "تعذّر فتح العقد. حاول مجدداً."
+    "contractDownloadFailed": "تعذّر فتح العقد. حاول مجدداً.",
+    "locationDisclosureTitle": "موقعك أثناء العمل",
+    "locationDisclosureIntro": "يستخدم أمانة الموقع الدقيق لهاتفك عندما تكون متصلاً، حتى عندما يكون التطبيق مغلقاً أو في الخلفية:",
+    "locationDisclosureUseOffers": "لنقترح عليك الطلبات القريبة منك؛",
+    "locationDisclosureUseTracking": "لنُظهر مسارك للزبون وللتاجر أثناء التوصيل؛",
+    "locationDisclosureUseProof": "لنسجّل مكان تسليم الطرود.",
+    "locationDisclosureStop": "يتوقف التتبّع بمجرد أن تصبح غير متصل. يبقى إشعار ظاهراً طوال مدة التتبّع. يمكنك سحب الإذن في أي وقت من إعدادات الهاتف.",
+    "locationDisclosureContinue": "متابعة",
+    "locationDisclosureNotNow": "ليس الآن",
+    "locationDisclosureDeclined": "بدون الموقع لا يمكنك استلام الطلبات. يمكنك تفعيله عندما تصبح متصلاً."
 }

@@ -82,28 +82,18 @@ class BackgroundLocationService {
     );
   }
 
-  /// Android only grants "Allow all the time" via a second prompt, and only
-  /// after "While using the app" is already granted — requesting it too
-  /// early (e.g. at cold start) silently fails on Android 11+. Call this
-  /// right before starting the service, once foreground permission is known
-  /// to be granted, so the GPS stream keeps delivering once the app is
-  /// actually backgrounded instead of pausing after a few minutes.
-  /// iOS relies on UIBackgroundModes=location (see Info.plist) once
-  /// when-in-use is granted, so no extra request is needed there.
-  static Future<void> _ensureBackgroundPermission() async {
-    if (!Platform.isAndroid) return;
-    final status = await Permission.locationAlways.status;
-    if (!status.isGranted) {
-      await Permission.locationAlways.request();
-    }
-  }
+  // No "Allow all the time" request: this service is a foreground service of
+  // type location (persistent notification), always started from the open
+  // app (accepting an order, going online, reopening the app). Android keeps
+  // delivering positions to it in the background with "While using the app",
+  // so ACCESS_BACKGROUND_LOCATION is not needed — and Google Play would ask
+  // for a declaration and a video to allow it. See LocationDisclosure.
 
   /// Call when driver accepts an order. Persists IDs so the isolate can read them.
   static Future<void> startTracking({
     required String driverId,
     required String deliveryId,
   }) async {
-    await _ensureBackgroundPermission();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kDriverIdKey, driverId);
     await prefs.setString(_kDeliveryIdKey, deliveryId);
@@ -114,7 +104,6 @@ class BackgroundLocationService {
   /// Starts the foreground service (persistent "online" notification) so
   /// Android OEMs keep FCM push alive even when the app is backgrounded.
   static Future<void> startOnlinePresence({required String driverId}) async {
-    await _ensureBackgroundPermission();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kDriverIdKey, driverId);
     await prefs.remove(_kDeliveryIdKey);

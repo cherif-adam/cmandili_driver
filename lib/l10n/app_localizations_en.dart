@@ -792,4 +792,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get contractDownloadFailed =>
       'The contract couldn\'t be opened. Try again.';
+
+  @override
+  String get locationDisclosureTitle => 'Your location while you work';
+
+  @override
+  String get locationDisclosureIntro =>
+      'Amana uses your phone\'s precise location while you are online, including when the app is closed or in the background:';
+
+  @override
+  String get locationDisclosureUseOffers => 'to offer you orders near you;';
+
+  @override
+  String get locationDisclosureUseTracking =>
+      'to show your route to the customer and the shop during a delivery;';
+
+  @override
+  String get locationDisclosureUseProof =>
+      'to record where parcels are handed over.';
+
+  @override
+  String get locationDisclosureStop =>
+      'Tracking stops as soon as you go offline. A notification stays visible while it is active. You can remove access at any time in your phone settings.';
+
+  @override
+  String get locationDisclosureContinue => 'Continue';
+
+  @override
+  String get locationDisclosureNotNow => 'Not now';
+
+  @override
+  String get locationDisclosureDeclined =>
+      'Without location you can\'t receive orders. You can turn it on when you go online.';
 }

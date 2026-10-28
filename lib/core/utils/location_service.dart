@@ -2,21 +2,21 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
+import '../permissions/location_disclosure.dart';
+
 class LocationService {
   // Check if location services are enabled
   static Future<bool> isLocationServiceEnabled() async {
     return await Geolocator.isLocationServiceEnabled();
   }
   
-  // Check and request location permissions
+  // Check and request location permissions. The prompt only shows once the
+  // driver accepted the explanation (LocationDisclosure).
   static Future<bool> checkPermissions() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    
+    final permission = await LocationDisclosure.requestIfAccepted();
+
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return false;
-      }
+      return false;
     }
     
     if (permission == LocationPermission.deniedForever) {

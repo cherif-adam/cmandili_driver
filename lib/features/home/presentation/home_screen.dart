@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
+import '../../../core/permissions/location_disclosure.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_map.dart';
 import '../../../core/push/push_service.dart';
@@ -364,10 +365,16 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       return;
     }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+    // Google Play: the driver reads what the location is for before
+    // Android's prompt (LocationDisclosure).
+    if (!mounted || !await LocationDisclosure.ensure(context)) {
+      if (mounted) {
+        setState(() => _locationError =
+            AppLocalizations.of(context)!.locationDisclosureDeclined);
+      }
+      return;
     }
+    final permission = await LocationDisclosure.requestIfAccepted();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       if (mounted)
@@ -538,6 +545,12 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                               inactiveThumbColor: Colors.white,
                               inactiveTrackColor: Colors.white24,
                               onChanged: (next) async {
+                                // Going online starts the location tracking:
+                                // the explanation comes first (Google Play).
+                                if (next &&
+                                    !await LocationDisclosure.ensure(context)) {
+                                  return;
+                                }
                                 final notifier =
                                     ref.read(driverOnlineProvider.notifier);
                                 await notifier.setOnline(next);

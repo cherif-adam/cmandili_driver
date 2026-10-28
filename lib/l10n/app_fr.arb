@@ -237,5 +237,14 @@
     "contractChooseGallery": "Choisir dans la galerie",
     "contractSent": "Photo envoyée à l'équipe Amana.",
     "contractSendFailed": "La photo n'a pas pu être envoyée. Réessayez.",
-    "contractDownloadFailed": "Le contrat n'a pas pu être ouvert. Réessayez."
+    "contractDownloadFailed": "Le contrat n'a pas pu être ouvert. Réessayez.",
+    "locationDisclosureTitle": "Votre position pendant le service",
+    "locationDisclosureIntro": "Amana utilise la position précise de votre téléphone quand vous êtes en ligne, y compris lorsque l'application est fermée ou en arrière-plan :",
+    "locationDisclosureUseOffers": "pour vous proposer les commandes proches de vous ;",
+    "locationDisclosureUseTracking": "pour montrer votre trajet au client et au commerçant pendant une livraison ;",
+    "locationDisclosureUseProof": "pour enregistrer le lieu de remise des colis.",
+    "locationDisclosureStop": "Le suivi s'arrête dès que vous passez hors ligne. Une notification reste affichée tant qu'il est actif. Vous pouvez retirer l'accès à tout moment dans les paramètres du téléphone.",
+    "locationDisclosureContinue": "Continuer",
+    "locationDisclosureNotNow": "Pas maintenant",
+    "locationDisclosureDeclined": "Sans la localisation, vous ne pouvez pas recevoir de commandes. Vous pourrez l'activer en passant en ligne."
 }
