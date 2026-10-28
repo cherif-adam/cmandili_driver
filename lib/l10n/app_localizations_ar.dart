@@ -807,4 +807,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get locationDisclosureDeclined =>
       'بدون الموقع لا يمكنك استلام الطلبات. يمكنك تفعيله عندما تصبح متصلاً.';
+
+  @override
+  String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicyOpenFailed => 'تعذّر فتح الصفحة. تحقّق من اتصالك.';
 }

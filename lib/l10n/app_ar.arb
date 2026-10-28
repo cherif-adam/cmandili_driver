@@ -246,5 +246,7 @@
     "locationDisclosureStop": "يتوقف التتبّع بمجرد أن تصبح غير متصل. يبقى إشعار ظاهراً طوال مدة التتبّع. يمكنك سحب الإذن في أي وقت من إعدادات الهاتف.",
     "locationDisclosureContinue": "متابعة",
     "locationDisclosureNotNow": "ليس الآن",
-    "locationDisclosureDeclined": "بدون الموقع لا يمكنك استلام الطلبات. يمكنك تفعيله عندما تصبح متصلاً."
+    "locationDisclosureDeclined": "بدون الموقع لا يمكنك استلام الطلبات. يمكنك تفعيله عندما تصبح متصلاً.",
+    "privacyPolicy": "سياسة الخصوصية",
+    "privacyPolicyOpenFailed": "تعذّر فتح الصفحة. تحقّق من اتصالك."
 }

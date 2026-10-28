@@ -246,5 +246,7 @@
     "locationDisclosureStop": "Le suivi s'arrête dès que vous passez hors ligne. Une notification reste affichée tant qu'il est actif. Vous pouvez retirer l'accès à tout moment dans les paramètres du téléphone.",
     "locationDisclosureContinue": "Continuer",
     "locationDisclosureNotNow": "Pas maintenant",
-    "locationDisclosureDeclined": "Sans la localisation, vous ne pouvez pas recevoir de commandes. Vous pourrez l'activer en passant en ligne."
+    "locationDisclosureDeclined": "Sans la localisation, vous ne pouvez pas recevoir de commandes. Vous pourrez l'activer en passant en ligne.",
+    "privacyPolicy": "Politique de confidentialité",
+    "privacyPolicyOpenFailed": "La page n'a pas pu s'ouvrir. Vérifiez votre connexion."
 }

@@ -837,4 +837,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get locationDisclosureDeclined =>
       'Sans la localisation, vous ne pouvez pas recevoir de commandes. Vous pourrez l\'activer en passant en ligne.';
+
+  @override
+  String get privacyPolicy => 'Politique de confidentialité';
+
+  @override
+  String get privacyPolicyOpenFailed =>
+      'La page n\'a pas pu s\'ouvrir. Vérifiez votre connexion.';
 }

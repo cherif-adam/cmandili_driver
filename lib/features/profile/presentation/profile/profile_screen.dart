@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/privacy_policy.dart';
 import '../../../auth/providers/auth_provider.dart';
 import 'package:cmandili_driver/l10n/app_localizations.dart';
 import '../../../../core/providers/localization_provider.dart';
@@ -140,6 +141,13 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.help_outline_rounded,
                   title: l.helpSupport,
                   onTap: () => open(const HelpSupportScreen()),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                ProfileItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: l.privacyPolicy,
+                  onTap: () => openPrivacyPolicy(context),
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),

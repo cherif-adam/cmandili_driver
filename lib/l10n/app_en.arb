@@ -254,5 +254,7 @@
     "locationDisclosureStop": "Tracking stops as soon as you go offline. A notification stays visible while it is active. You can remove access at any time in your phone settings.",
     "locationDisclosureContinue": "Continue",
     "locationDisclosureNotNow": "Not now",
-    "locationDisclosureDeclined": "Without location you can't receive orders. You can turn it on when you go online."
+    "locationDisclosureDeclined": "Without location you can't receive orders. You can turn it on when you go online.",
+    "privacyPolicy": "Privacy policy",
+    "privacyPolicyOpenFailed": "The page could not be opened. Check your connection."
 }

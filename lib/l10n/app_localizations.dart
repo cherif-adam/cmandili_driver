@@ -1587,6 +1587,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Without location you can\'t receive orders. You can turn it on when you go online.'**
   String get locationDisclosureDeclined;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @privacyPolicyOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The page could not be opened. Check your connection.'**
+  String get privacyPolicyOpenFailed;
 }
 
 class _AppLocalizationsDelegate

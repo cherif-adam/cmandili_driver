@@ -824,4 +824,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get locationDisclosureDeclined =>
       'Without location you can\'t receive orders. You can turn it on when you go online.';
+
+  @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get privacyPolicyOpenFailed =>
+      'The page could not be opened. Check your connection.';
 }
