@@ -511,20 +511,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   /// order, so it returns to the pool rather than dying. A driver who breaks
   /// down mid-delivery must be able to let go without the order being lost.
   ///
-  /// Two cases, and the difference matters for money:
-  ///  * **Before pickup** — the goods are still at the shop. Clearing
-  ///    `driver_id` puts the order back in the available list and the next
-  ///    driver collects from the shop as normal. Nothing is owed.
-  ///  * **After pickup** — the goods are with *this* driver. The order still
-  ///    returns to the pool (status rolls back so the next driver sees a
-  ///    collectable job), but the first driver already burned fuel and time,
-  ///    so a `driver_relay` settlement is recorded for the admin to credit to
-  ///    his wallet. The customer is never charged twice — the relay is paid
-  ///    by the platform, not re-billed.
+  /// The database function driver_release_order does it all in one
+  /// transaction. Two cases, and the difference matters for money:
+  ///  * **Before pickup** — the goods are still at the shop. The order keeps
+  ///    its status and goes back to the drivers. Nothing is owed.
+  ///  * **After pickup** — the goods are with *this* driver. The order goes
+  ///    back to 'ready' so the next driver collects it, and the trip already
+  ///    made becomes a request for the admin, who credits it to his wallet.
+  ///    The customer is never charged twice — the relay is paid by the
+  ///    platform, not re-billed.
   ///
-  /// The driver's id is appended to `passed_driver_ids` either way, so the
-  /// dispatcher does not immediately offer the same order straight back to
-  /// the driver who just gave it up.
+  /// Either way this driver is added to `passed_driver_ids`, so the
+  /// dispatcher does not offer the same order straight back to him.
   Future<void> _releaseOrder(Order order) async {
     final afterPickup = order.status == OrderStatus.pickedUp ||
         order.status == OrderStatus.onTheWay;
@@ -581,67 +579,21 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final driverId = await ref.read(currentDriverIdProvider.future);
+      // Writing to the order from here is refused by the database: the
+      // claim, the waterfall, this driver's delivery row and the request to
+      // the admin all change together, or not at all.
+      final result = await _supabase.rpc('driver_release_order', params: {
+        'p_order_id': widget.orderId,
+        'p_reason': reason,
+      });
 
-      // Re-read the passed list so we append rather than clobber the drivers
-      // who already declined this order.
-      final row = await _supabase
-          .from('orders')
-          .select('passed_driver_ids')
-          .eq('id', widget.orderId)
-          .single();
-      final passed = <String>{
-        ...((row['passed_driver_ids'] as List?)?.cast<String>() ?? const []),
-        if (driverId != null) driverId,
-      }.toList();
-
-      // Roll the order back to a collectable state and release the claim.
-      // Guarded on driver_id so a stale screen cannot yank an order that has
-      // already been reassigned to somebody else.
-      final released = await _supabase
-          .from('orders')
-          .update({
-            'driver_id': null,
-            'assigned_driver_id': null,
-            'status': 'ready',
-            'passed_driver_ids': passed,
-          })
-          .eq('id', widget.orderId)
-          .eq('driver_id', driverId as Object)
-          .select('id');
-
-      if ((released as List).isEmpty) {
+      // A stale screen: the order was already taken back or reassigned.
+      if (result == 'not_assigned') {
         messenger.showSnackBar(const SnackBar(
           content: Text('Cette commande ne vous est plus assignée.'),
           backgroundColor: Colors.orange,
         ));
         return;
-      }
-
-      // Close out this driver's delivery row so it stops tracking.
-      if (_activeDeliveryId != null) {
-        await _supabase
-            .from('deliveries')
-            .update({'status': 'cancelled'}).eq('id', _activeDeliveryId!);
-      }
-
-      // Owed for work already done: the admin settles this to the wallet.
-      // Left `pending` on purpose — it is a claim for review, not a payment
-      // the driver can grant himself.
-      if (afterPickup && driverId != null) {
-        final userId = _supabase.auth.currentUser?.id;
-        if (userId != null) {
-          await _supabase.from('settlements').insert({
-            'user_id': userId,
-            'entity_type': 'driver',
-            'amount': order.deliveryFee,
-            'type': 'driver_relay',
-            'status': 'pending',
-            'description':
-                'Trajet partiel #${widget.orderId.substring(0, 8).toUpperCase()} — $reason',
-            'related_order_id': widget.orderId,
-          });
-        }
       }
 
       await _endDeliveryTracking();
