@@ -15,25 +15,27 @@ import 'core/providers/localization_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'core/config/supabase_config.dart';
+import 'core/config/build_config.dart';
 import 'core/push/push_service.dart';
 import 'firebase_options.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // dotenv MUST resolve first — SupabaseConfig reads from it. The Google
-  // Maps key is read from the native manifest, not here. Then run the
-  // remaining independent cold-start work in
-  // parallel (Firebase init + SharedPreferences load + Supabase bootstrap).
-  await dotenv.load(fileName: '.env');
+  // Built without --dart-define-from-file: say so now rather than fail later
+  // on an empty Supabase URL. The map tiles' key is read from the native
+  // manifest, not here. Then run the remaining independent cold-start work
+  // in parallel (Firebase init + SharedPreferences load + Supabase bootstrap).
+  if (BuildConfig.missing.isNotEmpty) {
+    throw StateError('Missing ${BuildConfig.missing.join(', ')}: build with '
+        '--dart-define-from-file=dart_defines.json');
+  }
 
   late SharedPreferences prefs;
   await Future.wait([
     Supabase.initialize(
-      url: SupabaseConfig.url,
-      anonKey: SupabaseConfig.anonKey,
+      url: BuildConfig.supabaseUrl,
+      anonKey: BuildConfig.supabaseAnonKey,
     ),
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
         .catchError((_) => Firebase.app()),
@@ -42,8 +44,8 @@ void main() async {
 
   // Persist Supabase credentials so the background isolate can initialize.
   // Fire-and-forget — these reads happen later from a different isolate.
-  unawaited(prefs.setString('supabase_url', SupabaseConfig.url));
-  unawaited(prefs.setString('supabase_anon_key', SupabaseConfig.anonKey));
+  unawaited(prefs.setString('supabase_url', BuildConfig.supabaseUrl));
+  unawaited(prefs.setString('supabase_anon_key', BuildConfig.supabaseAnonKey));
 
   runApp(const ProviderScope(child: MyApp()));
 

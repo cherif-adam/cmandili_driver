@@ -46,7 +46,6 @@ dependencies:
 
   # Icons & config
   cupertino_icons: ^1.0.6
-  flutter_dotenv: ^6.0.0
 
   # Phone call (tap-to-call customer)
   url_launcher: ^6.2.5
@@ -68,7 +67,6 @@ flutter:
   uses-material-design: true
   
   assets:
-    - .env
     - assets/images/
     - assets/animations/
     - assets/icons/
