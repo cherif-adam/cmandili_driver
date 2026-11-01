@@ -54,7 +54,7 @@ class BackgroundLocationService {
       // the OS rejects the notification and kills the process.
       const channel = AndroidNotificationChannel(
         _kNotifChannelId,
-        'Cmandili Driver Location',
+        'Amana Driver Location',
         description: 'Keeps GPS tracking active while delivering',
         importance: Importance.low,
       );
@@ -70,7 +70,7 @@ class BackgroundLocationService {
         autoStart: false,
         isForegroundMode: true,
         notificationChannelId: _kNotifChannelId,
-        initialNotificationTitle: 'Cmandili Driver',
+        initialNotificationTitle: 'Amana Driver',
         initialNotificationContent: 'Location tracking active',
         foregroundServiceNotificationId: _kNotifId,
       ),
@@ -355,7 +355,7 @@ void _onStart(ServiceInstance service) async {
   Future<void> pushLocation(Position pos) async {
     if (service is AndroidServiceInstance) {
       service.setForegroundNotificationInfo(
-        title: 'Cmandili Driver',
+        title: 'Amana Driver',
         content:
             'Location tracking active • ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
       );
