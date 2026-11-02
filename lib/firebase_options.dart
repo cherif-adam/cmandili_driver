@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCZVtt0UTHX9NtF2rCGC1eAMC_lM-fXjTA',
-    appId: '1:785469526658:ios:3bf257495aeea78e3f5a9b',
+    appId: '1:785469526658:ios:af925bf9dbb8aad13f5a9b',
     messagingSenderId: '785469526658',
     projectId: 'cmandili-c1ade',
     storageBucket: 'cmandili-c1ade.firebasestorage.app',
-    iosBundleId: 'com.cmandili.driver',
+    iosBundleId: 'com.amana.driver',
   );
 }
